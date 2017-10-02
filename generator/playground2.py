@@ -9,8 +9,8 @@ from progressbar import ProgressBar
 from scipy.sparse.csgraph import minimum_spanning_tree
 
 # -------- Dataset Parameters --------
-m = 200  # number of features
-n = 1000  # number of instances
+m = 20  # number of features
+n = 100  # number of instances
 b = 90 / n  # the desired complexity, defined by the length of the class boundary, b ∈[0,1].
 l = [0, 1, 2]  # manually define a set of possible labels
 # TODO make algorithm dependent on l
@@ -23,7 +23,6 @@ POPULATION_SIZE = 20
 NUMB_OF_ELITE_CHROMOSOMES = 5  # those chromosomes will not be affected by crossover or mutation
 TOURNAMENT_SELECTION_SIZE = 2
 MUTATION_RATE = 0.05  # between 0 and 1, usually small
-NUMB_GENERATIONS = 200
 # -------- End GA Parameters --------
 
 
