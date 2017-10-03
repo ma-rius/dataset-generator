@@ -157,3 +157,7 @@ ENV/
 .idea/modules.xml
 .idea/vcs.xml
 
+assets/data.csv
+assets/inst/
+assets/sol/
+.idea/deployment.xml
