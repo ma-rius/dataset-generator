@@ -148,7 +148,7 @@ ENV/
 
 # Own stuff
 # *.xlsx # excel files
- *.csv # data files
+*.csv
 
 # End of https://www.gitignore.io/api/intellij,python
 .idea/dataset-generator.iml
@@ -157,7 +157,7 @@ ENV/
 .idea/modules.xml
 .idea/vcs.xml
 
-assets/data.csv
+
 assets/inst/
 assets/sol/
 .idea/deployment.xml
