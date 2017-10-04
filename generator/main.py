@@ -1,7 +1,6 @@
 import csv
 import random
-import time
-
+import pandas as pd
 import numpy as np
 import scipy.spatial.distance as dist
 from joblib import Parallel, delayed
@@ -10,10 +9,10 @@ from scipy.sparse.csgraph import minimum_spanning_tree
 
 # -------- Dataset Parameters --------
 m = 20  # number of features
-n = 1000  # number of instances
-b = 100 / n  # the desired complexity, defined by the length of the class boundary, b ∈[0,1].
+n = 100  # number of instances
+b = 50 / n  # the desired complexity, defined by the length of the class boundary, b ∈[0,1].
 l = [0, 1, 2]  # manually define a set of possible labels
-# TODO make algorithm dependent on l
+# TODO make algorithm dependent on l or simply on max number of classes C
 # TODO include parameter for minority class
 # -------- End Dataset Parameters --------
 
@@ -47,15 +46,21 @@ progress_bar_random = ProgressBar()
 for i in progress_bar_random(range(0, n, 1)):
     instance = []
     for j in range(0, m, 1):
-        instance.append(np.random.normal(distribution_dict[j][0], distribution_dict[j][1], 1)[0])
+        instance.append(np.random.normal(distribution_dict[j][0], distribution_dict[j][1], 1)[0])  # TODO float
     instances.update({i: instance})
 
 # store data in csv file
 with open('../assets/data.csv', 'w') as f:
     print('write instances to file')
-    time.sleep(0.1)
     progress_bar_file = ProgressBar()
     wtr = csv.writer(f, delimiter=',')  # TODO Semicolon as delimiter
+    # create top line in csv
+    top_line = []
+    for title in range(m):  # TODO ugly af
+        top_line.append(title)
+    top_line.append('label')
+    wtr.writerow(top_line)
+    # write instances to file
     for index in progress_bar_file(instances):
         wtr.writerow(instances[index])
 # ----------------------------------------------
@@ -69,6 +74,7 @@ def calc_distances(p):
     for q in range(p + 1, n, 1):
         u, v = instances[p], instances[q]
         d = dist.euclidean(u, v)
+        # d = np.linalg.norm(np.array(u) - np.array(v))  # about twice as fast as dist.euclidean
         row.append(d)
     return row
 print('calculate distances')
@@ -212,3 +218,12 @@ while population.get_chromosomes()[0].get_fitness() < 1:
     generation_number += 1
 
 
+print('-------------')
+# print(population.get_chromosomes()[0])
+
+labels = np.array((population.get_chromosomes()[0]).get_genes())
+print(labels)
+print(len(labels))
+csv_input = pd.read_csv('../assets/data.csv')
+csv_input['label'] = labels
+csv_input.to_csv('../assets/data_with_labels.csv', index=False)
