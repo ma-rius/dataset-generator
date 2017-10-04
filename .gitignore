@@ -147,7 +147,7 @@ ENV/
 .ropeproject
 
 # Own stuff
-# *.xlsx # excel files
+*.xlsx
 *.csv
 
 # End of https://www.gitignore.io/api/intellij,python
