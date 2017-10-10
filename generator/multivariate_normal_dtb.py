@@ -7,7 +7,7 @@ from openpyxl import Workbook
 np.set_printoptions(threshold=np.inf, precision=2, linewidth=np.inf)
 
 m = 5  # number of attributes
-n = 1000  # number of instances
+n = 10  # number of instances
 
 # initialize mean vector
 mean = []

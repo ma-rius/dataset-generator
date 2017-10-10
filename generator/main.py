@@ -1,5 +1,7 @@
 import csv
-import random
+import sys
+# import random
+from scipy import random
 import pandas as pd
 import numpy as np
 import scipy.spatial.distance as dist
@@ -8,14 +10,19 @@ from progressbar import ProgressBar
 from scipy.sparse.csgraph import minimum_spanning_tree
 
 # -------- Dataset Parameters --------
-m = 20  # number of features
-n = 100  # number of instances
+m = 200  # number of attributes
+m_groups = 2  # number of independent groups the attributes are divided by
+n = 2000  # number of instances
 b = 50 / n  # the desired complexity, defined by the length of the class boundary, b ∈[0,1].
-l = [0, 1, 2]  # manually define a set of possible labels
+# l = [0, 1, 2]  # manually define a set of possible labels
 # TODO make algorithm dependent on l or simply on max number of classes C
 # TODO include parameter for minority class
 # -------- End Dataset Parameters --------
 
+# check if attributes can be divided into specified amount of groups
+if m % m_groups != 0:
+    sys.exit('%i attributes can not be split into %i equal-sized groups' % (m, m_groups))
+m_per_group = int(m/m_groups)
 
 # -------- GA Parameters --------
 POPULATION_SIZE = 10
@@ -29,40 +36,40 @@ MUTATION_RATE = 0.05  # between 0 and 1, usually small
 np.set_printoptions(threshold=np.inf, precision=2, linewidth=np.inf)
 
 # -------- create and store dataset without labels --------
-distribution_dict = {}
-instances = {}
+# initialize mean vectors
+all_means = []
+for g_mean in range(m_groups):
+    mean = np.random.randint(100, size=m_per_group)
+    all_means.append(mean)
 
-print('initialize distribution')
-progress_bar_distribution = ProgressBar()
-for j in progress_bar_distribution(range(0, m, 1)):
-    # set distribution for feature j
-    mu = random.randint(0, 100)  # TODO make specified number of attributes dependent on each other
-    sigma = random.randint(0, 100)
-    # print('Mu: %d, Sigma: %s' % (mu, sigma))
-    distribution_dict.update({j: [mu, sigma]})
+print('Mean Vectors: \n', all_means)
 
-print('randomly pick values from distributions')
-progress_bar_random = ProgressBar()
-for i in progress_bar_random(range(0, n, 1)):
-    instance = []
-    for j in range(0, m, 1):
-        instance.append(np.random.normal(distribution_dict[j][0], distribution_dict[j][1], 1)[0])  # TODO float
-    instances.update({i: instance})
+# initialize covariance matrices (must be positive semi-definite)
+all_cov = []
+for g_cov in range(m_groups):
+    A = random.rand(m_per_group, m_per_group)
+    cov = np.dot(A, A.transpose())
+    all_cov.append(cov)
+
+print(all_cov)
 
 # store data in csv file
 with open('../assets/data.csv', 'w') as f:
     print('write instances to file')
     progress_bar_file = ProgressBar()
-    wtr = csv.writer(f, delimiter=',')  # TODO Semicolon as delimiter
+    wtr = csv.writer(f, delimiter=';')  # TODO Semicolon as delimiter for Excel
     # create top line in csv
     top_line = []
-    for title in range(m):  # TODO ugly af
+    for title in range(m):
         top_line.append(title)
     top_line.append('label')
     wtr.writerow(top_line)
     # write instances to file
-    for index in progress_bar_file(instances):
-        wtr.writerow(instances[index])
+    for index in progress_bar_file(range(n)):
+        row = []
+        for group in range(m_groups):
+            row.extend(np.random.multivariate_normal(all_means[group], all_cov[group], 1)[0])
+        wtr.writerow(row)
 # ----------------------------------------------
 
 
@@ -90,8 +97,10 @@ print()
 # -------- calculate Minimum Spanning Tree --------
 print('calculate Minimum Spanning Tree')
 #  noinspection PyTypeChecker
-mst = minimum_spanning_tree(graph, overwrite=True).toarray()  # TODO check if overwrite = True has no bad influences
+mst = minimum_spanning_tree(graph, overwrite=True).toarray()
 print(mst)
+
+# TODO save mst (non-zero values) to csv at this place (mst is of size n x n ! - if n=1Mio -> n x n = 1TRILLION)
 
 
 class Chromosome:
