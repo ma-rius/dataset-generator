@@ -1,23 +1,6 @@
-import csv
-import random
-import time
-import sys
-import numpy as np
-import scipy.spatial.distance as dist
-from joblib import Parallel, delayed
-from progressbar import ProgressBar
-from scipy.sparse.csgraph import minimum_spanning_tree
-import pandas as pd
+# own GA implementation
 
-# -------- Dataset Parameters --------
-m = 20  # number of features
-n = 100  # number of instances
-b = 80 / n  # the desired complexity, defined by the length of the class boundary, b ∈[0,1].
-l = [0, 1, 2]  # manually define a set of possible labels
-# TODO make algorithm dependent on l
-# TODO include parameter for minority class
-# -------- End Dataset Parameters --------
-
+from scipy import random
 
 # -------- GA Parameters --------
 POPULATION_SIZE = 10
@@ -25,74 +8,6 @@ NUMB_OF_ELITE_CHROMOSOMES = 5  # those chromosomes will not be affected by cross
 TOURNAMENT_SELECTION_SIZE = 2
 MUTATION_RATE = 0.05  # between 0 and 1, usually small
 # -------- End GA Parameters --------
-
-
-# set print options for large arrays
-np.set_printoptions(threshold=np.inf, precision=2, linewidth=np.inf)
-
-# -------- create and store dataset without labels --------
-distribution_dict = {}
-instances = {}
-
-print('initialize distribution')
-progress_bar_distribution = ProgressBar()
-for j in progress_bar_distribution(range(0, m, 1)):
-    # set distribution for feature j
-    mu = random.randint(0, 100)  # TODO make specified number of attributes dependent on each other
-    sigma = random.randint(0, 100)
-    # print('Mu: %d, Sigma: %s' % (mu, sigma))
-    distribution_dict.update({j: [mu, sigma]})
-
-print('randomly pick values from distributions')
-progress_bar_random = ProgressBar()
-for i in progress_bar_random(range(0, n, 1)):
-    instance = []
-    for j in range(0, m, 1):
-        instance.append(np.random.normal(distribution_dict[j][0], distribution_dict[j][1], 1)[0])
-    instances.update({i: instance})
-
-# store data in csv file
-with open('../assets/data.csv', 'w') as f:
-    print('write instances to file')
-    time.sleep(0.1)
-    progress_bar_file = ProgressBar()
-    wtr = csv.writer(f, delimiter=',')  # TODO Semicolon as delimiter
-    # create top line in csv
-    top_line = []
-    for title in range(m):
-        top_line.append(title)
-    top_line.append('label')
-    wtr.writerow(top_line)
-    for index in progress_bar_file(instances):
-        wtr.writerow(instances[index])
-# ----------------------------------------------
-
-
-# -------- build distance matrix --------
-def calc_distances(p):
-    row = []
-    for q in range(0, p + 1, 1):
-        row.append(0)
-    for q in range(p + 1, n, 1):
-        u, v = instances[p], instances[q]
-        d = dist.euclidean(u, v)
-        row.append(d)
-    return row
-print('calculate distances')
-progress_bar_random = ProgressBar()
-pool = Parallel(n_jobs=-1, verbose=1)
-results = pool(delayed(calc_distances)(p) for p in progress_bar_random(range(0, n, 1)))
-
-graph = np.array(results)
-print(graph)
-print()
-# ----------------------------------------------
-
-# -------- calculate Minimum Spanning Tree --------
-print('calculate Minimum Spanning Tree')
-#  noinspection PyTypeChecker
-mst = minimum_spanning_tree(graph, overwrite=True).toarray()  # TODO check if overwrite = True has no bad influences
-print(mst)
 
 
 class Chromosome:
@@ -218,12 +133,5 @@ while population.get_chromosomes()[0].get_fitness() < 1:
     _print_population(population, generation_number)
     generation_number += 1
 
+
 print('-------------')
-# print(population.get_chromosomes()[0])
-
-labels = np.array((population.get_chromosomes()[0]).get_genes())
-print(labels)
-csv_input = pd.read_csv('../assets/data.csv')
-csv_input['label'] = labels
-csv_input.to_csv('../assets/data_with_labels.csv', index=False)
-
