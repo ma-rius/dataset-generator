@@ -1,3 +1,4 @@
+import multiprocessing
 import sys
 import time
 
@@ -5,15 +6,15 @@ import numpy as np
 import pandas as pd
 from deap import algorithms
 from deap import creator, base, tools
+from scipy import random
 from scipy.sparse.csgraph import minimum_spanning_tree
 from scipy.spatial import distance
-from scipy import random
-import multiprocessing
+
 
 # -------- Dataset Parameters --------
-m = 200  # number of attributes
+m = 14  # number of attributes
 m_groups = 2  # number of independent groups the attributes are divided by
-n = 100  # number of instances
+n = 30000  # number of instances
 b = 0.2  # the desired complexity, defined by the length of the class boundary, b ∈[0,1].
 # -------- End Dataset Parameters --------
 
@@ -24,14 +25,14 @@ m_per_group = int(m / m_groups)
 
 # -------- GA Parameters --------
 population_size = 100  # int(n / 10)
-num_of_generations = 100
+num_of_generations = 10000000
 # -------- End GA Parameters --------
 
 
 # set print options for large arrays
 np.set_printoptions(threshold=np.inf, precision=2, linewidth=np.inf)
 pd.set_option('expand_frame_repr', False)
-
+pd.set_option('compute.use_numexpr', True)  # accelerating certain types of binary numerical and boolean operations using the numexpr library
 
 # ----  Dataset Creation ----
 start = time.time()
@@ -66,7 +67,6 @@ data['label'] = np.nan
 print('Store numbers in csv file...')
 data.to_csv(path_or_buf='../assets/data.csv', sep=';', header=data[:].columns.values.tolist(), index=False, decimal=',')
 
-
 # ----  End of Dataset Creation ----
 print('Data Creation done in:', time.time() - start, 'seconds.')
 
@@ -77,13 +77,21 @@ print('Calculate Distance Matrix...')
 dist = np.triu(distance.cdist(data[data[:].columns.difference(['label'])], data[data[:].columns.difference(['label'])],
                               'euclidean'))
 print('Distance Matrix calculated in', time.time() - start, 'seconds.')
-
+# print(dist)
 
 # calculate Minimum Spanning Tree
 start = time.time()
 print('Calculate MST...')
 mst = minimum_spanning_tree(dist, overwrite=True).toarray()
 print('MST calculated in', time.time() - start, 'seconds.')
+# print(mst)
+
+# get row and column indices of non-zero values in mst
+# mst_edges has this form: [[0, 0], [1, 3], [1, 4], [3, 4]]
+print('Get row and column indices of non-zero values in MST...')
+# noinspection PyTypeChecker
+mst_edges = (np.argwhere(mst != 0)).tolist()
+# print(mst_edges)
 
 
 # ---- GA ----
@@ -93,11 +101,9 @@ def evaluate(individual):
     # number of edges connecting points of opposite classes is counted and divided by the
     # total number of connections. This ratio is taken as the measure of boundary length
     boundary_length = 0
-
-    for s in range(0, n, 1):
-        for t in range(s + 1, n, 1):  # take advantage of matrix symmetry
-            if (mst[s][t] != 0) and (individual[s] != individual[t]):
-                boundary_length += 1
+    for edge in mst_edges:
+        if individual[edge[0]] != individual[edge[1]]:
+            boundary_length += 1
     fitness = abs(boundary_length / n - b)  # distance between actual and desired boundary length
     return fitness,
 
@@ -110,6 +116,7 @@ toolbox.register("gene", np.random.randint, 0, 2)  # randomly either 0 or 1
 toolbox.register("individual", tools.initRepeat, creator.Individual,
                  toolbox.gene, n=n)
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+
 toolbox.register("mate", tools.cxTwoPoint)
 toolbox.register("mutate", tools.mutFlipBit, indpb=1 / n)
 toolbox.register("select", tools.selTournament, tournsize=3)
@@ -120,9 +127,9 @@ def main():
     print('GA started...')
     pop = toolbox.population(n=population_size)
     # print(pop)
-    # ind1 = toolbox.individual()
-    # print(ind1)
-    # print(evaluate(ind1))
+    ind1 = toolbox.individual()
+    print(ind1)
+    print(evaluate(ind1))
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", np.mean)
