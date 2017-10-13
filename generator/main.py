@@ -14,8 +14,8 @@ from scipy.spatial import distance
 # -------- Dataset Parameters --------
 m = 14  # number of attributes
 m_groups = 2  # number of independent groups the attributes are divided by
-n = 30000  # number of instances
-b = 0.2  # the desired complexity, defined by the length of the class boundary, b ∈[0,1].
+n = 500  # number of instances
+b = 1  # the desired complexity, defined by the length of the class boundary, b ∈[0,1].
 # -------- End Dataset Parameters --------
 
 # check if attributes can be divided into specified amount of groups
@@ -108,28 +108,48 @@ def evaluate(individual):
     return fitness,
 
 
+# create Fitness Class
+# negative value for minimization problem (minimize the difference between specified and actual complexity)
+# -1 since we only have one objective to minimize with weight 100%
 creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+
+# create Individual class
 creator.create("Individual", list, fitness=creator.FitnessMin)
 
+
 toolbox = base.Toolbox()
+
+# one gene is one integer (0 or 1), the "class label"
 toolbox.register("gene", np.random.randint, 0, 2)  # randomly either 0 or 1
+
+# An individual is composed of n genes
 toolbox.register("individual", tools.initRepeat, creator.Individual,
                  toolbox.gene, n=n)
+
+# A population is composed of many individuals
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
+
+# GA techniques
+# Mutation
+toolbox.register("mutate", tools.mutFlipBit, indpb=1/n)
+# Crossover
 toolbox.register("mate", tools.cxTwoPoint)
-toolbox.register("mutate", tools.mutFlipBit, indpb=1 / n)
-toolbox.register("select", tools.selTournament, tournsize=3)
+# Selection
+toolbox.register("select", tools.selTournament, tournsize=int(n/10))
+
+# register Fitness Function
 toolbox.register("evaluate", evaluate)
 
 
+# run the GA
 def main():
     print('GA started...')
     pop = toolbox.population(n=population_size)
     # print(pop)
-    ind1 = toolbox.individual()
-    print(ind1)
-    print(evaluate(ind1))
+    # ind1 = toolbox.individual()
+    # print(ind1)
+    # print(evaluate(ind1))
     hof = tools.HallOfFame(1)
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", np.mean)
@@ -137,7 +157,7 @@ def main():
     stats.register("min", np.min)
     stats.register("max", np.max)
 
-    algorithms.eaSimple(pop, toolbox, cxpb=0.5, mutpb=0.2, ngen=num_of_generations, stats=stats, halloffame=hof,
+    algorithms.eaSimple(pop, toolbox, cxpb=0.8, mutpb=0.5, ngen=num_of_generations, stats=stats, halloffame=hof,
                         verbose=True)
 
     # print('Population:', pop)
