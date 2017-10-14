@@ -1,178 +1,81 @@
+import array
 import multiprocessing
-import sys
-import time
+import numpy
+from deap import base
+from deap import creator
 
-import numpy as np
-import pandas as pd
-from deap import algorithms
-from deap import creator, base, tools
-from scipy import random
-from scipy.sparse.csgraph import minimum_spanning_tree
-from scipy.spatial import distance
-
+from generator.functions import *
 
 # -------- Dataset Parameters --------
-m = 14  # number of attributes
-m_groups = 2  # number of independent groups the attributes are divided by
-n = 500  # number of instances
-b = 1  # the desired complexity, defined by the length of the class boundary, b ∈[0,1].
-# -------- End Dataset Parameters --------
-
-# check if attributes can be divided into specified amount of groups
-if m % m_groups != 0:
-    sys.exit('%i attributes can not be split into %i equal-sized groups' % (m, m_groups))
-m_per_group = int(m / m_groups)
+n = 100
+m = 15
 
 # -------- GA Parameters --------
-population_size = 100  # int(n / 10)
-num_of_generations = 10000000
-# -------- End GA Parameters --------
+MIN_VALUE = 0
+MAX_VALUE = 2
+MIN_STRATEGY = 0.5
+MAX_STRATEGY = 1
+population_size = 100
 
+# -------- Run Parameters --------
+# complexity_measures = [0.1]
+complexity_measures = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+amount_of_datasets_per_complexity_measure = 2
 
-# set print options for large arrays
-np.set_printoptions(threshold=np.inf, precision=2, linewidth=np.inf)
-pd.set_option('expand_frame_repr', False)
-pd.set_option('compute.use_numexpr', True)  # accelerating certain types of binary numerical and boolean operations using the numexpr library
-
-# ----  Dataset Creation ----
-start = time.time()
-
-# initialize mean vectors
-all_means = []
-for g_mean in range(m_groups):
-    mean = np.random.randint(100, size=m_per_group)
-    all_means.append(mean)
-# print('Mean Vectors: \n', all_means)
-print('Mean Vector created.')
-
-# initialize covariance matrices (must be positive semi-definite)
-all_cov = []
-for g_cov in range(m_groups):
-    A = random.rand(m_per_group, m_per_group)
-    cov = np.dot(A, A.transpose())
-    all_cov.append(cov)
-# print(all_cov)
-print('Covariance Matrix created.')
-
-# get values that follow the specified distribution
-data = pd.DataFrame()
-for group in range(m_groups):
-    data = pd.concat([data, pd.DataFrame(np.random.multivariate_normal(all_means[group], all_cov[group], n))], axis=1,
-                     ignore_index=True)
-
-# add empty column for the labels
-data['label'] = np.nan
-
-# save in csv file
-print('Store numbers in csv file...')
-data.to_csv(path_or_buf='../assets/data.csv', sep=';', header=data[:].columns.values.tolist(), index=False, decimal=',')
-
-# ----  End of Dataset Creation ----
-print('Data Creation done in:', time.time() - start, 'seconds.')
-
-
-# build distance matrix
-start = time.time()
-print('Calculate Distance Matrix...')
-dist = np.triu(distance.cdist(data[data[:].columns.difference(['label'])], data[data[:].columns.difference(['label'])],
-                              'euclidean'))
-print('Distance Matrix calculated in', time.time() - start, 'seconds.')
-# print(dist)
-
-# calculate Minimum Spanning Tree
-start = time.time()
-print('Calculate MST...')
-mst = minimum_spanning_tree(dist, overwrite=True).toarray()
-print('MST calculated in', time.time() - start, 'seconds.')
-# print(mst)
-
-# get row and column indices of non-zero values in mst
-# mst_edges has this form: [[0, 0], [1, 3], [1, 4], [3, 4]]
-print('Get row and column indices of non-zero values in MST...')
-# noinspection PyTypeChecker
-mst_edges = (np.argwhere(mst != 0)).tolist()
-# print(mst_edges)
-
-
-# ---- GA ----
-
-# fitness function
-def evaluate(individual):
-    # number of edges connecting points of opposite classes is counted and divided by the
-    # total number of connections. This ratio is taken as the measure of boundary length
-    boundary_length = 0
-    for edge in mst_edges:
-        if individual[edge[0]] != individual[edge[1]]:
-            boundary_length += 1
-    fitness = abs(boundary_length / n - b)  # distance between actual and desired boundary length
-    return fitness,
-
-
-# create Fitness Class
-# negative value for minimization problem (minimize the difference between specified and actual complexity)
-# -1 since we only have one objective to minimize with weight 100%
+# initialize GA
 creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
-
-# create Individual class
-creator.create("Individual", list, fitness=creator.FitnessMin)
-
+creator.create("Individual", array.array, typecode='d', fitness=creator.FitnessMin, strategy=None)
+creator.create("Strategy", array.array, typecode='d')
 
 toolbox = base.Toolbox()
 
-# one gene is one integer (0 or 1), the "class label"
-toolbox.register("gene", np.random.randint, 0, 2)  # randomly either 0 or 1
 
-# An individual is composed of n genes
-toolbox.register("individual", tools.initRepeat, creator.Individual,
-                 toolbox.gene, n=n)
+def main(mst_edges, b, path):
+    start_main = time.time()
+    toolbox.register("individual", generateES, creator.Individual, creator.Strategy,
+                     n, MIN_VALUE, MAX_VALUE, MIN_STRATEGY, MAX_STRATEGY)
+    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+    toolbox.register("mate", tools.cxTwoPoint)
+    toolbox.register("mutate", tools.mutFlipBit, indpb=1 / n)
+    toolbox.register("select", tools.selTournament, tournsize=3)
+    toolbox.register("evaluate", evaluate, mst_edges=mst_edges, n=n, b=b)
 
-# A population is composed of many individuals
-toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+    toolbox.decorate("mate", checkStrategy(MIN_STRATEGY))
+    toolbox.decorate("mutate", checkStrategy(MIN_STRATEGY))
 
-
-# GA techniques
-# Mutation
-toolbox.register("mutate", tools.mutFlipBit, indpb=1/n)
-# Crossover
-toolbox.register("mate", tools.cxTwoPoint)
-# Selection
-toolbox.register("select", tools.selTournament, tournsize=int(n/10))
-
-# register Fitness Function
-toolbox.register("evaluate", evaluate)
-
-
-# run the GA
-def main():
-    print('GA started...')
     pop = toolbox.population(n=population_size)
-    # print(pop)
-    # ind1 = toolbox.individual()
-    # print(ind1)
-    # print(evaluate(ind1))
+
     hof = tools.HallOfFame(1)
+
     stats = tools.Statistics(lambda ind: ind.fitness.values)
-    stats.register("avg", np.mean)
-    stats.register("std", np.std)
-    stats.register("min", np.min)
-    stats.register("max", np.max)
+    stats.register("avg", numpy.mean)
+    stats.register("std", numpy.std)
+    stats.register("min", numpy.min)
+    stats.register("max", numpy.max)
 
-    algorithms.eaSimple(pop, toolbox, cxpb=0.8, mutpb=0.5, ngen=num_of_generations, stats=stats, halloffame=hof,
-                        verbose=True)
+    eaSimple(pop, toolbox=toolbox, cxpb=0.9, mutpb=0.4, stats=stats,
+             halloffame=hof,
+             verbose=True)
+    # print('Best individual:', hof[0])
+    data = pd.read_csv(path, sep=';', decimal=',')
+    data['label'] = [int(x) for x in hof[0]]
+    data.to_csv(path, index=False)
 
-    # print('Population:', pop)
-    # print(log)
-    print('------------------------------------')
-    print('Best individual:', hof[0])
-    print('Fitness of best individual:', evaluate(hof[0]))
-    print('------------------------------------')
-    data['label'] = hof[0]
-    data.to_csv('../assets/data.csv', index=False)
+    print('Time for this complexity:', time.time() - start_main)
+    print('--------------------\n')
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    start_ = time.time()
     pool = multiprocessing.Pool()
     toolbox.register("map", pool.map)
-    main()
+    for i in range(amount_of_datasets_per_complexity_measure):
+        print('\n-------------------- ITERATION %r --------------------\n' % (i+1))
+        for complexity in complexity_measures:
+            print('Complexity: %r\n' % complexity)
+            main(create_dataset(n=n, m=m, covariance_between_attributes=False,
+                                path='../assets/data_%r.csv' % complexity), b=complexity,
+                 path='../assets/data_%r.csv' % complexity)
 
-    # ---- End GA ----
+    print('-------------------------------------------------')
+    print('Total time:', time.time() - start_)
