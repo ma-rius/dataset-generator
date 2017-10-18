@@ -10,9 +10,11 @@ from scipy.spatial import distance
 
 
 # ----  Dataset Creation ----
+# stores the data set in specified path and returns the MST of the data
 def create_dataset(n, m, path, covariance_between_attributes=False, m_groups=1):
     start = time.time()
     data = pd.DataFrame()
+
     if covariance_between_attributes:
         if m % m_groups != 0:
             sys.exit('%i attributes can not be split into %i equal-sized groups' % (m, m_groups))
@@ -39,8 +41,11 @@ def create_dataset(n, m, path, covariance_between_attributes=False, m_groups=1):
             data = pd.concat([data, pd.DataFrame(np.random.multivariate_normal(all_means[group], all_cov[group], n))],
                              axis=1,
                              ignore_index=True)
+
+    # for independent attributes:
     else:
         for attr in range(m):
+            # concatenate columns: each column follows a normal distribution
             data = pd.concat([data, pd.DataFrame(np.random.normal(random.randint(10, 100), 5, n))], axis=1,
                              ignore_index=True)
 
@@ -104,7 +109,6 @@ def evaluate(individual, mst_edges, n, b):
 # "number of edges connecting points of opposite classes is counted and divided by the
 # total number of connections. This ratio is taken as the measure of boundary length."
 def evaluate_on_edges(individual, mst_edges, n, b):
-
     boundary_length = 0
     for edge in mst_edges:
         if individual[edge[0]] != individual[edge[1]]:
@@ -113,6 +117,7 @@ def evaluate_on_edges(individual, mst_edges, n, b):
     return fitness,
 
 
+# copied from deap but implemented break condition
 def eaSimple(population, toolbox, cxpb, mutpb, stats=None,
              halloffame=None, verbose=__debug__):
     logbook = tools.Logbook()
@@ -165,6 +170,7 @@ def eaSimple(population, toolbox, cxpb, mutpb, stats=None,
     return population, logbook
 
 
+# some EA stuff...
 def varAnd(population, toolbox, cxpb, mutpb):
     offspring = [toolbox.clone(ind) for ind in population]
 
@@ -182,6 +188,7 @@ def varAnd(population, toolbox, cxpb, mutpb):
     return offspring
 
 
+# some EA strategy stuff...
 def generateES(icls, scls, size, imin, imax, smin, smax):
     ind = icls(np.random.randint(size=size, low=imin, high=imax))
     ind.strategy = scls(np.random.randint(size=size, low=smin, high=smax))
@@ -189,6 +196,7 @@ def generateES(icls, scls, size, imin, imax, smin, smax):
     return ind
 
 
+# some EA strategy stuff...
 def checkStrategy(minstrategy):
     def decorator(func):
         def wrappper(*args, **kargs):
