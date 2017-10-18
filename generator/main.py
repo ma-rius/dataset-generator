@@ -7,17 +7,17 @@ from generator.functions import *
 
 # -------- Dataset Parameters --------
 n = 10
-m = 15
+m = 5
 
 # -------- GA Parameters --------
 MIN_VALUE = 0
 MAX_VALUE = 2
-MIN_STRATEGY = 0.5
-MAX_STRATEGY = 1
-population_size = 100
+MIN_STRATEGY = 0.1
+MAX_STRATEGY = 3
+population_size = 1
 
 # -------- Run Parameters --------
-complexity_measures = [0.1]
+complexity_measures = [0.8]
 # complexity_measures = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 amount_of_datasets_per_complexity_measure = 1
 
@@ -39,7 +39,7 @@ def main(mst_edges, b, path):
                      n, MIN_VALUE, MAX_VALUE, MIN_STRATEGY, MAX_STRATEGY)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("mate", tools.cxTwoPoint)
-    toolbox.register("mutate", tools.mutFlipBit, indpb=1 / n)
+    toolbox.register("mutate", tools.mutFlipBit, indpb=1/n)
     toolbox.register("select", tools.selTournament, tournsize=3)
     # toolbox.register("select", tools.selNSGA2)
     toolbox.register("evaluate", evaluate, mst_edges=mst_edges, n=n, b=b)
@@ -57,13 +57,15 @@ def main(mst_edges, b, path):
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
 
-    eaSimple(pop, toolbox=toolbox, cxpb=0.8, mutpb=0.4, stats=stats,
+    eaSimple(pop, toolbox=toolbox, cxpb=0.1, mutpb=0.3, stats=stats,
              halloffame=hof,
              verbose=True)
     print('Best individual:', hof[0])
-    data = pd.read_csv(path, sep=';', decimal=',')
+    print('Share of class 1:', np.count_nonzero(hof[0]) / n)
+    # data = pd.read_csv(path, sep=';', decimal=',')
+    data = pd.read_csv(path)
     data['label'] = [int(x) for x in hof[0]]
-    data.to_csv(path, index=False)  # TODO sep & decimal
+    data.to_csv(path, index=False)
 
     print('Time for this complexity:', time.time() - start_main)
     print('--------------------\n')
@@ -75,13 +77,16 @@ if __name__ == "__main__":
     toolbox.register("map", pool.map)
     for i in range(amount_of_datasets_per_complexity_measure):
         start_iter = time.time()
-        print('\n-------------------- ITERATION %r --------------------\n' % (i+1))
+        print('\n-------------------- ITERATION %r --------------------\n' % (i + 1))
         for complexity in complexity_measures:
             print('Complexity: %r\n' % complexity)
-            main(create_dataset(n=n, m=m, covariance_between_attributes=False,
-                                path='../assets/data_%r.csv' % complexity), b=complexity,
-                 path='../assets/data_%r.csv' % complexity)
-        print('Time for iteration', (i+1), ':', time.time()-start_iter)
+
+            data_set = create_dataset(n=n, m=m, covariance_between_attributes=False,
+                                      path='../assets/data_%r.csv' % complexity)
+
+            main(data_set, b=complexity, path='../assets/data_%r.csv' % complexity)
+
+        print('Time for iteration', (i + 1), ':', time.time() - start_iter)
 
     print('\n-------------------------------------------------')
     print('Total time:', time.time() - start_total)

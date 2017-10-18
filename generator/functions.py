@@ -41,7 +41,7 @@ def create_dataset(n, m, path, covariance_between_attributes=False, m_groups=1):
                              ignore_index=True)
     else:
         for attr in range(m):
-            data = pd.concat([data, pd.DataFrame(np.random.normal(random.randint(0, 100), 0.1, n))], axis=1,
+            data = pd.concat([data, pd.DataFrame(np.random.normal(random.randint(10, 100), 5, n))], axis=1,
                              ignore_index=True)
 
     # add empty column for the labels
@@ -49,8 +49,9 @@ def create_dataset(n, m, path, covariance_between_attributes=False, m_groups=1):
 
     # save in csv file
     print('Store numbers in csv file...')
-    data.to_csv(path_or_buf=path, sep=';', header=data[:].columns.values.tolist(), index=False,
-                decimal=',')
+    # data.to_csv(path_or_buf=path, sep=';', header=data[:].columns.values.tolist(), index=False,
+    #             decimal=',')
+    data.to_csv(path_or_buf=path, header=data[:].columns.values.tolist(), index=False)
 
     # ----  End of Dataset Creation ----
     print('Data Creation done in:', time.time() - start, 'seconds.')
@@ -62,28 +63,48 @@ def create_dataset(n, m, path, covariance_between_attributes=False, m_groups=1):
         distance.cdist(data[data[:].columns.difference(['label'])], data[data[:].columns.difference(['label'])],
                        'euclidean'))
     print('Distance Matrix calculated in', time.time() - start, 'seconds.')
-    # print(dist)
+    print(dist)
 
     # calculate Minimum Spanning Tree
     start = time.time()
     print('Calculate MST...')
-    mst = minimum_spanning_tree(dist, overwrite=True).toarray()
+    mst = minimum_spanning_tree(dist, overwrite=False).toarray()
     print('MST calculated in', time.time() - start, 'seconds.')
-    # print(mst)
 
     # get row and column indices of non-zero values in mst
     # mst_edges has this form: [[0, 0], [1, 3], [1, 4], [3, 4]]
     print('Get row and column indices of non-zero values in MST...')
     # noinspection PyTypeChecker
     mst_edges = (np.argwhere(mst != 0)).tolist()
-
+    print(mst)
+    # print(mst_edges)
     return mst_edges
 
 
-# fitness function
+# fitness function that counts the points according to Ho & Basu
 def evaluate(individual, mst_edges, n, b):
-    # number of edges connecting points of opposite classes is counted and divided by the
-    # total number of connections. This ratio is taken as the measure of boundary length
+    # 1. Store the nodes of the spanning tree with different class.
+    nodes = [-1] * n
+    for edge in mst_edges:
+        if individual[edge[0]] != individual[edge[1]]:
+            nodes[edge[0]] = 0
+            nodes[edge[1]] = 0
+
+    # 2. Compute the number of nodes of the spanning tree with different class.
+    different = 0
+    for i in range(n):
+        if nodes[i] == 0:
+            different += 1
+    # print('different:', different)
+    fitness = abs(different / n - b)
+    return fitness,
+
+
+# old fitness function that counts the edges
+# "number of edges connecting points of opposite classes is counted and divided by the
+# total number of connections. This ratio is taken as the measure of boundary length."
+def evaluate_on_edges(individual, mst_edges, n, b):
+
     boundary_length = 0
     for edge in mst_edges:
         if individual[edge[0]] != individual[edge[1]]:
@@ -114,6 +135,7 @@ def eaSimple(population, toolbox, cxpb, mutpb, stats=None,
     # Begin the generational process
     gen = 1
     while record['min'] > 0.01:
+    # for i in range(0):
         # Select the next generation individuals
         offspring = toolbox.select(population, len(population))
 
