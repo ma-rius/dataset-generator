@@ -149,6 +149,7 @@ ENV/
 # Own stuff
 *.xlsx
 *.csv
+*.pkl
 
 # End of https://www.gitignore.io/api/intellij,python
 .idea/dataset-generator.iml
