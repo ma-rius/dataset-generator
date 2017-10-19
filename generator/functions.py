@@ -81,7 +81,7 @@ def create_dataset(n, m, path, covariance_between_attributes=False, m_groups=1):
     print('Get row and column indices of non-zero values in MST...')
     # noinspection PyTypeChecker
     mst_edges = (np.argwhere(mst != 0)).tolist()
-    print(mst)
+    # print(mst)
     # print(mst_edges)
     return mst_edges
 
