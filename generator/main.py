@@ -1,3 +1,4 @@
+import os
 import array
 import multiprocessing
 import numpy
@@ -8,7 +9,7 @@ from generator.functions import *
 
 # -------- Dataset Parameters --------
 n = 1000  # number of instances
-m = 10  # number of attributes
+m = 5  # number of attributes
 
 # -------- GA Parameters --------
 MIN_VALUE = 0  # individuals have int values [0.2), i.e. 0 or 1
@@ -18,9 +19,10 @@ MAX_STRATEGY = 1  # max value standard deviation of the mutation
 population_size = 100  # number of individuals in each generation
 
 # -------- Run Parameters --------
-# complexity_measures = [0.9]
-complexity_measures = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-amount_of_datasets_per_complexity_measure = 1
+# complexity_measures = [0.2]
+# complexity_measures = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+complexity_measures = [0.2, 0.4, 0.6, 0.8]
+amount_of_datasets_per_complexity_measure = 50
 
 # set print options for large arrays
 np.set_printoptions(threshold=np.inf, precision=2, linewidth=np.inf)
@@ -65,7 +67,7 @@ def main(mst_edges, b, path):
     stats.register("max", numpy.max)
 
     # run the EA
-    eaSimple(pop, toolbox=toolbox, cxpb=0.85, mutpb=0.5, stats=stats,
+    eaSimple(pop, toolbox=toolbox, cxpb=0.85, mutpb=0.4, stats=stats,
              halloffame=hof,
              verbose=True)
     print('Best individual:', hof[0])
@@ -84,11 +86,11 @@ def main(mst_edges, b, path):
     print('--------------------\n')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     start_total = time.time()
     # initialize multiprocessing
     pool = multiprocessing.Pool()
-    toolbox.register("map", pool.map)
+    toolbox.register('map', pool.map)
 
     # loop through amount of desired datasets for each complexity measure
     for i in range(amount_of_datasets_per_complexity_measure):
@@ -99,14 +101,18 @@ if __name__ == "__main__":
         for complexity in complexity_measures:
             print('Complexity: %r\n' % complexity)
 
+            # create folder for each complexity measure if not existent
+            if not os.path.exists('../assets/complexity_%r' % complexity):
+                os.makedirs('../assets/complexity_%r' % complexity)
+
             # create data set (stores the file and returns the MST)
             data_set_mst = create_dataset(n=n, m=m, covariance_between_attributes=False,
-                                          path='../assets/data_%r.csv' % complexity)
+                                          path='../assets/complexity_%r/data_%r.csv' % (complexity, (i+1)))
             # pickle.dump(data_set_mst, open('../assets/mst_edges.pkl', 'wb'))
 
             # data_set_mst = pickle.load(open('../assets/mst_edges.pkl', 'rb'))
 
-            main(mst_edges=data_set_mst, b=complexity, path='../assets/data_%r.csv' % complexity)
+            main(mst_edges=data_set_mst, b=complexity, path='../assets/complexity_%r/data_%r.csv' % (complexity, (i+1)))
 
         print('Time for iteration', (i + 1), ':', time.time() - start_iter)
 
