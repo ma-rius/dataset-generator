@@ -68,7 +68,7 @@ def create_dataset(n, m, path, covariance_between_attributes=False, m_groups=1):
         distance.cdist(data[data[:].columns.difference(['label'])], data[data[:].columns.difference(['label'])],
                        'euclidean'))
     print('Distance Matrix calculated in', time.time() - start, 'seconds.')
-    print(dist)
+    # print(dist)
 
     # calculate Minimum Spanning Tree
     start = time.time()
