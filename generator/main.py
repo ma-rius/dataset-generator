@@ -9,7 +9,7 @@ from generator.functions import *
 
 # -------- Dataset Parameters --------
 n = 1000  # number of instances
-m = 5  # number of attributes
+m = 7  # number of attributes
 
 # -------- GA Parameters --------
 MIN_VALUE = 0  # individuals have int values [0.2), i.e. 0 or 1
