@@ -7,19 +7,19 @@ from deap import creator
 from generator.functions import *
 
 # -------- Dataset Parameters --------
-n = 10000  # number of instances
+n = 1000  # number of instances
 m = 10  # number of attributes
 
 # -------- GA Parameters --------
 MIN_VALUE = 0  # individuals have int values [0.2), i.e. 0 or 1
 MAX_VALUE = 2  # individuals have int values [0.2), i.e. 0 or 1
-MIN_STRATEGY = 0.1  # min value for standard deviation of the mutation
-MAX_STRATEGY = 6  # max value standard deviation of the mutation
+MIN_STRATEGY = 0.6  # min value for standard deviation of the mutation
+MAX_STRATEGY = 1  # max value standard deviation of the mutation
 population_size = 100  # number of individuals in each generation
 
 # -------- Run Parameters --------
-complexity_measures = [0.2]
-# complexity_measures = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+# complexity_measures = [0.9]
+complexity_measures = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 amount_of_datasets_per_complexity_measure = 1
 
 # set print options for large arrays
@@ -43,7 +43,7 @@ def main(mst_edges, b, path):
                      n, MIN_VALUE, MAX_VALUE, MIN_STRATEGY, MAX_STRATEGY)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("mate", tools.cxTwoPoint)
-    toolbox.register("mutate", tools.mutFlipBit, indpb=0.3)
+    toolbox.register("mutate", tools.mutFlipBit, indpb=1/n)
     toolbox.register("select", tools.selTournament, tournsize=3)
     # toolbox.register("select", tools.selNSGA2)
     toolbox.register("evaluate", evaluate, mst_edges=mst_edges, n=n, b=b)
@@ -65,7 +65,7 @@ def main(mst_edges, b, path):
     stats.register("max", numpy.max)
 
     # run the EA
-    eaSimple(pop, toolbox=toolbox, cxpb=0.1, mutpb=0.3, stats=stats,
+    eaSimple(pop, toolbox=toolbox, cxpb=0.85, mutpb=0.5, stats=stats,
              halloffame=hof,
              verbose=True)
     print('Best individual:', hof[0])
@@ -102,7 +102,7 @@ if __name__ == "__main__":
             # create data set (stores the file and returns the MST)
             data_set_mst = create_dataset(n=n, m=m, covariance_between_attributes=False,
                                           path='../assets/data_%r.csv' % complexity)
-            pickle.dump(data_set_mst, open('../assets/mst_edges.pkl', 'wb'))
+            # pickle.dump(data_set_mst, open('../assets/mst_edges.pkl', 'wb'))
 
             # data_set_mst = pickle.load(open('../assets/mst_edges.pkl', 'rb'))
 
