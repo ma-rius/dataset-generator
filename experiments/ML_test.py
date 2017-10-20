@@ -16,16 +16,18 @@ np.set_printoptions(threshold=np.inf, precision=2, linewidth=np.inf)
 pd.set_option('expand_frame_repr', False)
 
 complexity_measures = [0.2, 0.4, 0.6, 0.8]
-num_data_sets = 50
+num_data_sets = 5
 
 # define number of attributes in Test set
-num_attributes = 5
+num_attributes = 9
 
 data_to_plot = []
 
 for complexity in complexity_measures:
     all_results_for_one_complexity = []
     for i in range(num_data_sets):
+        print('-------- Complexity: %r --------' % complexity)
+        print('-------- Iteration: %r --------' % i)
         # import assets
         # last column is target
         df = pd.read_csv('../assets/complexity_%r/data_%r.csv' % (complexity, (i+1)), sep=',', header=0)
@@ -45,7 +47,7 @@ for complexity in complexity_measures:
         # clf = SVC()
         parameters = {'loss':('deviance', 'exponential'), 'learning_rate':[0.1, 0.3,0.4,0.7,0.9]}
         # svc_parameters = {'C': [0.001, 1, 10, 100], 'kernel':['linear', 'poly']}
-        clf = GridSearchCV(ensemble.GradientBoostingClassifier(), parameters, verbose=10)
+        clf = GridSearchCV(ensemble.GradientBoostingClassifier(), parameters, verbose=10, n_jobs=-1)
         # clf = GridSearchCV(SVC(), svc_parameters, verbose=10, n_jobs=-1)
 
         # start clf training
@@ -71,4 +73,5 @@ for complexity in complexity_measures:
 
 plt.boxplot(data_to_plot, positions=complexity_measures)
 # plt.xticks(complexity_measures)
-plt.show()
+# plt.show()
+plt.savefig('../charts/m=%r' % num_attributes)
