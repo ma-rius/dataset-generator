@@ -7,8 +7,15 @@ from deap import creator
 from generator.functions import *
 
 # -------- Dataset Parameters --------
-n = 1000  # number of instances
+n = 100  # number of instances
 m = 15  # number of attributes
+num_subs = 3  # number of sub classifiers
+
+# stop if bullshit was entered
+if m % num_subs != 0:
+    sys.exit('%i attributes can not be split into %i equal-sized groups' % (m, num_subs))
+else:
+    m_subs = int(m / num_subs)
 
 # -------- GA Parameters --------
 MIN_VALUE = 0  # individuals have int values [0.2), i.e. 0 or 1
@@ -18,15 +25,14 @@ MAX_STRATEGY = 1  # max value standard deviation of the mutation
 population_size = 100  # number of individuals in each generation
 
 # -------- Run Parameters --------
-# complexity_measures = [0.2]
+complexity_measures = [0.2]
 # complexity_measures = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
-complexity_measures = [0.2, 0.4, 0.6, 0.8]
-amount_of_datasets_per_complexity_measure = 50
+# complexity_measures = [0.2, 0.4, 0.6, 0.8]
+amount_of_datasets_per_complexity_measure = 1
 
 # set print options for large arrays
 np.set_printoptions(threshold=np.inf, precision=2, linewidth=np.inf)
 pd.set_option('expand_frame_repr', False)
-
 
 # initialize EA
 creator.create("FitnessMin", base.Fitness,
@@ -44,7 +50,7 @@ def main(mst_edges, b, path):
                      n, MIN_VALUE, MAX_VALUE, MIN_STRATEGY, MAX_STRATEGY)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("mate", tools.cxTwoPoint)
-    toolbox.register("mutate", tools.mutFlipBit, indpb=1/n)
+    toolbox.register("mutate", tools.mutFlipBit, indpb=1 / n)
     toolbox.register("select", tools.selTournament, tournsize=3)
     # toolbox.register("select", tools.selNSGA2)
     toolbox.register("evaluate", evaluate, mst_edges=mst_edges, n=n, b=b)
@@ -105,14 +111,49 @@ if __name__ == '__main__':
             if not os.path.exists('../assets/complexity_%r' % complexity):
                 os.makedirs('../assets/complexity_%r' % complexity)
 
-            # create data set (stores the file and returns the MST)
-            data_set_mst = create_dataset(n=n, m=m, covariance_between_attributes=False,
-                                          path='../assets/complexity_%r/data_%r.csv' % (complexity, (i+1)))
-            # pickle.dump(data_set_mst, open('../assets/mst_edges.pkl', 'wb'))
+            for i_sub in range(num_subs):
+                # create sub data set (stores the file and returns the MST)
+                data_set_mst = create_dataset_and_or_mst(n=n, m=m_subs, covariance_between_attributes=False,
+                                                         path='../assets/complexity_%r/data_%r_%r.csv' % (
+                                                         complexity, (i + 1), (i_sub + 1)))
 
-            # data_set_mst = pickle.load(open('../assets/mst_edges.pkl', 'rb'))
+                # run EA and store data set with labels
+                main(mst_edges=data_set_mst, b=complexity,
+                     path='../assets/complexity_%r/data_%r_%r.csv' % (complexity, (i + 1), (i_sub + 1)))
 
-            main(mst_edges=data_set_mst, b=complexity, path='../assets/complexity_%r/data_%r.csv' % (complexity, (i+1)))
+            # create dataset from labels of sub datasets
+            labels_dataset = pd.DataFrame()
+            for i_sub in range(num_subs):
+                # concatenate columns
+                labels_dataset = pd.concat(
+                    [labels_dataset, pd.read_csv(filepath_or_buffer='../assets/complexity_%r/data_%r_%r.csv' % (
+                        complexity, (i + 1), (i_sub + 1)), usecols=['label'])], axis=1, ignore_index=True)
+
+            # get MST of labels dataset
+            labels_mst = create_dataset_and_or_mst(data=labels_dataset,
+                                                   path='../assets/complexity_%r/data_%r_labels.csv' % (
+                                                   complexity, (i + 1)))
+
+            main(mst_edges=labels_mst, b=complexity,
+                 path='../assets/complexity_%r/data_%r_labels.csv' % (complexity, (i + 1)))
+
+            # combine subsets
+            data_set_combined = pd.DataFrame()
+            for i_sub in range(num_subs):
+                # concatenate columns
+                data_set_combined = pd.concat(
+                    [data_set_combined, pd.read_csv(filepath_or_buffer='../assets/complexity_%r/data_%r_%r.csv' % (
+                        complexity, (i + 1), (i_sub + 1)), usecols=[x for x in range(m_subs)])], axis=1,
+                    ignore_index=True)
+
+            # append y_complete
+            data_set_combined = pd.concat(
+                [data_set_combined, pd.read_csv(filepath_or_buffer='../assets/complexity_%r/data_%r_labels.csv' % (
+                    complexity, (i + 1)), usecols=['label'])], axis=1, ignore_index=False)
+
+            # print(data_set_combined)
+            data_set_combined.to_csv(path_or_buf='../assets/complexity_%r/data_%r.csv' % (complexity, (i + 1)),
+                                     index=False)
 
         print('Time for iteration', (i + 1), ':', time.time() - start_iter)
 
