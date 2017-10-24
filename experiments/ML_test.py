@@ -1,5 +1,7 @@
-from numpy import genfromtxt
+import matplotlib as plt
+plt.use('Agg')
 import matplotlib.pyplot as plt
+from numpy import genfromtxt
 import pandas as pd
 import numpy as np
 from sklearn.svm import LinearSVC
@@ -10,6 +12,17 @@ from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_classification
 from sklearn import metrics
 from sklearn.model_selection import GridSearchCV
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neural_network import MLPClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.gaussian_process import GaussianProcessClassifier
+from sklearn.gaussian_process.kernels import RBF
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.naive_bayes import GaussianNB
 
 # set print options for large arrays
 np.set_printoptions(threshold=np.inf, precision=2, linewidth=np.inf)
@@ -19,7 +32,7 @@ complexity_measures = [0.2, 0.4, 0.6, 0.8]
 num_data_sets = 5
 
 # define number of attributes in Test set
-num_attributes = 9
+num_attributes = 15
 
 data_to_plot = []
 
@@ -45,14 +58,22 @@ for complexity in complexity_measures:
         # clf = MLPClassifier(solver=‘lbfgs’, alpha=1e-5, hidden_layer_sizes=(15,), random_state=1)
         # clf = ensemble.GradientBoostingClassifier()
         # clf = SVC()
-        parameters = {'loss':('deviance', 'exponential'), 'learning_rate':[0.1, 0.3,0.4,0.7,0.9]}
+        # clf = GaussianNB()
+        # clf = RandomForestClassifier(max_depth=5, n_estimators=10, max_features=1)
+        # clf = KNeighborsClassifier(3)
+        # parameters = {'loss':('deviance', 'exponential'), 'learning_rate':[0.1, 0.3,0.4,0.7,0.9]}
         # svc_parameters = {'C': [0.001, 1, 10, 100], 'kernel':['linear', 'poly']}
-        clf = GridSearchCV(ensemble.GradientBoostingClassifier(), parameters, verbose=10, n_jobs=-1)
+        knc_parameters = {'n_neighbors': [2, 3, 5, 7, 9, 15], 'weights': ['uniform', 'distance'],
+                          'leaf_size': [20, 30, 50, 80, 200]}
+        # clf = GridSearchCV(ensemble.GradientBoostingClassifier(), parameters, verbose=10, n_jobs=-1)
         # clf = GridSearchCV(SVC(), svc_parameters, verbose=10, n_jobs=-1)
+        # clf = MLPClassifier(solver='lbfgs', alpha=1e-5,
+        #                     hidden_layer_sizes=(5, 2), random_state=1)
+        clf = GridSearchCV(KNeighborsClassifier(), knc_parameters, verbose=1, n_jobs=-1)
 
         # start clf training
         clf.fit(X_train, y_train)
-
+        print('Best parameters:', clf.best_params_)
         # predict test values
         y_pred = clf.predict(X_test)
 
