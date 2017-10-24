@@ -11,61 +11,63 @@ from scipy.spatial import distance
 
 # ----  Dataset Creation ----
 # stores the data set in specified path and returns the MST of the data
-def create_dataset(n, m, path, covariance_between_attributes=False, m_groups=1):
-    start = time.time()
-    data = pd.DataFrame()
+def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=False, m_groups=1, data=None):
+    if data is None:
+        data_ = pd.DataFrame()
 
-    if covariance_between_attributes:
-        if m % m_groups != 0:
-            sys.exit('%i attributes can not be split into %i equal-sized groups' % (m, m_groups))
-        m_per_group = int(m / m_groups)
-        # initialize mean vectors
-        all_means = []
-        for g_mean in range(m_groups):
-            mean = np.random.randint(100, size=m_per_group)
-            all_means.append(mean)
-        # print('Mean Vectors: \n', all_means)
-        print('Mean Vector created.')
+        if covariance_between_attributes:
+            if m % m_groups != 0:
+                sys.exit('%i attributes can not be split into %i equal-sized groups' % (m, m_groups))
+            m_per_group = int(m / m_groups)
+            # initialize mean vectors
+            all_means = []
+            for g_mean in range(m_groups):
+                mean = np.random.randint(100, size=m_per_group)
+                all_means.append(mean)
+            # print('Mean Vectors: \n', all_means)
+            print('Mean Vector created.')
 
-        # initialize covariance matrices (must be positive semi-definite)
-        all_cov = []
-        for g_cov in range(m_groups):
-            A = random.rand(m_per_group, m_per_group)
-            cov = np.dot(A, A.transpose())
-            all_cov.append(cov)
-        # print(all_cov)
-        print('Covariance Matrix created.')
+            # initialize covariance matrices (must be positive semi-definite)
+            all_cov = []
+            for g_cov in range(m_groups):
+                A = random.rand(m_per_group, m_per_group)
+                cov = np.dot(A, A.transpose())
+                all_cov.append(cov)
+            # print(all_cov)
+            print('Covariance Matrix created.')
 
-        # get values that follow the specified distribution
-        for group in range(m_groups):
-            data = pd.concat([data, pd.DataFrame(np.random.multivariate_normal(all_means[group], all_cov[group], n))],
-                             axis=1,
-                             ignore_index=True)
+            # get values that follow the specified distribution
+            for group in range(m_groups):
+                data_ = pd.concat([data_, pd.DataFrame(np.random.multivariate_normal(all_means[group], all_cov[group], n))],
+                                 axis=1,
+                                 ignore_index=True)
 
-    # for independent attributes:
+        # for independent attributes:
+        else:
+            for attr in range(m):
+                # concatenate columns: each column follows a normal distribution
+                data_ = pd.concat([data_, pd.DataFrame(np.random.normal(random.randint(10, 100), np.random.rand(1)*5, n))],
+                                 axis=1, ignore_index=True)
     else:
-        for attr in range(m):
-            # concatenate columns: each column follows a normal distribution
-            data = pd.concat([data, pd.DataFrame(np.random.normal(random.randint(10, 100), np.random.rand(1)*5, n))],
-                             axis=1, ignore_index=True)
+        data_ = data
+        print('Now processing merged labels from sub data sets..')
 
     # add empty column for the labels
-    data['label'] = np.nan
+    data_['label'] = np.nan
 
     # save in csv file
     print('Store numbers in csv file...')
     # data.to_csv(path_or_buf=path, sep=';', header=data[:].columns.values.tolist(), index=False,
     #             decimal=',')
-    data.to_csv(path_or_buf=path, header=data[:].columns.values.tolist(), index=False)
+    data_.to_csv(path_or_buf=path, header=data_[:].columns.values.tolist(), index=False)
 
     # ----  End of Dataset Creation ----
-    print('Data Creation done in:', time.time() - start, 'seconds.')
 
     # build distance matrix
     start = time.time()
     print('Calculate Distance Matrix...')
     dist = np.triu(
-        distance.cdist(data[data[:].columns.difference(['label'])], data[data[:].columns.difference(['label'])],
+        distance.cdist(data_[data_[:].columns.difference(['label'])], data_[data_[:].columns.difference(['label'])],
                        'euclidean'))
     print('Distance Matrix calculated in', time.time() - start, 'seconds.')
     # print(dist)
