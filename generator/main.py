@@ -112,7 +112,7 @@ if __name__ == '__main__':
                 os.makedirs('../assets/complexity_%r' % complexity)
 
             for i_sub in range(num_subs):
-                # create sub data set (stores the file and returns the MST)
+                # create sub data set (function stores the file and returns the MST)
                 data_set_mst = create_dataset_and_or_mst(n=n, m=m_subs, covariance_between_attributes=False,
                                                          path='../assets/complexity_%r/data_%r_%r.csv' % (
                                                          complexity, (i + 1), (i_sub + 1)))
@@ -151,7 +151,7 @@ if __name__ == '__main__':
                 [data_set_combined, pd.read_csv(filepath_or_buffer='../assets/complexity_%r/data_%r_labels.csv' % (
                     complexity, (i + 1)), usecols=['label'])], axis=1, ignore_index=False)
 
-            # print(data_set_combined)
+            # store combined dataset
             data_set_combined.to_csv(path_or_buf='../assets/complexity_%r/data_%r.csv' % (complexity, (i + 1)),
                                      index=False)
 

@@ -50,7 +50,7 @@ def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=F
                                  axis=1, ignore_index=True)
     else:
         data_ = data
-        print('Now processing merged labels from sub data sets..')
+        print('Now processing merged labels from sub data sets.')
 
     # add empty column for the labels
     data_['label'] = np.nan
