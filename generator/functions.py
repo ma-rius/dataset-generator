@@ -46,8 +46,8 @@ def create_dataset(n, m, path, covariance_between_attributes=False, m_groups=1):
     else:
         for attr in range(m):
             # concatenate columns: each column follows a normal distribution
-            data = pd.concat([data, pd.DataFrame(np.random.normal(random.randint(10, 100), 5, n))], axis=1,
-                             ignore_index=True)
+            data = pd.concat([data, pd.DataFrame(np.random.normal(random.randint(10, 100), np.random.rand(1)*5, n))],
+                             axis=1, ignore_index=True)
 
     # add empty column for the labels
     data['label'] = np.nan

@@ -2,19 +2,18 @@ import os
 import array
 import multiprocessing
 import numpy
-import pickle
 from deap import base
 from deap import creator
 from generator.functions import *
 
 # -------- Dataset Parameters --------
 n = 1000  # number of instances
-m = 7  # number of attributes
+m = 15  # number of attributes
 
 # -------- GA Parameters --------
 MIN_VALUE = 0  # individuals have int values [0.2), i.e. 0 or 1
 MAX_VALUE = 2  # individuals have int values [0.2), i.e. 0 or 1
-MIN_STRATEGY = 0.6  # min value for standard deviation of the mutation
+MIN_STRATEGY = 0.2  # min value for standard deviation of the mutation
 MAX_STRATEGY = 1  # max value standard deviation of the mutation
 population_size = 100  # number of individuals in each generation
 
@@ -70,8 +69,9 @@ def main(mst_edges, b, path):
     eaSimple(pop, toolbox=toolbox, cxpb=0.85, mutpb=0.4, stats=stats,
              halloffame=hof,
              verbose=True)
-    print('Best individual:', hof[0])
-    print('Share of class 1:', np.count_nonzero(hof[0]) / n)
+    share_class_1 = np.count_nonzero(hof[0]) / n
+    # print('Best individual:', hof[0])
+    print('Share of class 1:', share_class_1)
     # data = pd.read_csv(path, sep=';', decimal=',')
 
     # open file again
