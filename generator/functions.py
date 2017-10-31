@@ -4,7 +4,7 @@ import sys
 import numpy as np
 import pandas as pd
 from deap import tools
-from scipy import random
+# from scipy import random
 from scipy.sparse.csgraph import minimum_spanning_tree
 from scipy.spatial import distance
 
