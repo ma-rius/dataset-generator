@@ -88,8 +88,8 @@ def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=F
     return mst_edges
 
 
-# fitness function that counts the points according to Ho & Basu
-def evaluate(individual, mst_edges, n, b):
+# calculate complexity measure
+def complexity(individual, mst_edges, n, b):
     # 1. Store the nodes of the spanning tree with different class.
     nodes = [-1] * n
     for edge in mst_edges:
@@ -104,7 +104,16 @@ def evaluate(individual, mst_edges, n, b):
             different += 1
     # print('different:', different)
     fitness = abs(different / n - b)
-    return fitness,
+    return fitness
+
+
+# fitness function that counts the points according to Ho & Basu
+def evaluate(individual, mst_edges, n, b):
+    fitness = ()  # fitness must be a tuple
+    for mst_edges_ in mst_edges:
+        fitness += (complexity(individual, mst_edges_, n, b),)  # "append" each single fitness to fitness tuple
+
+    return fitness
 
 
 # old fitness function that counts the edges
@@ -117,6 +126,58 @@ def evaluate_on_edges(individual, mst_edges, n, b):
             boundary_length += 1
     fitness = abs(boundary_length / n - b)  # distance between actual and desired boundary length
     return fitness,
+
+
+# copied from deap but implemented break condition
+def eaMuPlusLambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
+                   stats=None, halloffame=None, verbose=__debug__):
+
+    logbook = tools.Logbook()
+    logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
+
+    # Evaluate the individuals with an invalid fitness
+    invalid_ind = [ind for ind in population if not ind.fitness.valid]
+    fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+
+    for ind, fit in zip(invalid_ind, fitnesses):
+        ind.fitness.values = fit
+
+    if halloffame is not None:
+        halloffame.update(population)
+
+    record = stats.compile(population) if stats is not None else {}
+    logbook.record(gen=0, nevals=len(invalid_ind), **record)
+    if verbose:
+        print(logbook.stream)
+
+    # Begin the generational process
+    # for gen in range(1, ngen+1):
+    gen = 1
+    while all(_ > 0.01 for _ in record['min']):
+        # Vary the population
+        offspring = varOr(population, toolbox, lambda_, cxpb, mutpb)
+
+        # Evaluate the individuals with an invalid fitness
+        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+        fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+        for ind, fit in zip(invalid_ind, fitnesses):
+            ind.fitness.values = fit
+            # print(ind.fitness.values)
+        # Update the hall of fame with the generated individuals
+        if halloffame is not None:
+            halloffame.update(offspring)
+
+        # Select the next generation population
+        population[:] = toolbox.select(population + offspring, mu)
+
+        # Update the statistics with the new population
+        record = stats.compile(population) if stats is not None else {}
+        # print(record)
+        logbook.record(gen=gen, nevals=len(invalid_ind), **record)
+        if verbose:
+            print(logbook.stream)
+    gen += 1
+    return population, logbook
 
 
 # copied from deap but implemented break condition
@@ -141,7 +202,9 @@ def eaSimple(population, toolbox, cxpb, mutpb, stats=None,
 
     # Begin the generational process
     gen = 1
-    while record['min'] > 0.01:
+    # print('Record:', record)
+    # while record['min'] > 0.01:
+    while gen < 100:
     # for i in range(0):
         # Select the next generation individuals
         offspring = toolbox.select(population, len(population))
@@ -152,6 +215,7 @@ def eaSimple(population, toolbox, cxpb, mutpb, stats=None,
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
+
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
 
@@ -171,6 +235,29 @@ def eaSimple(population, toolbox, cxpb, mutpb, stats=None,
 
     return population, logbook
 
+
+# some EA stuff...
+def varOr(population, toolbox, lambda_, cxpb, mutpb):
+    assert (cxpb + mutpb) <= 1.0, ("The sum of the crossover and mutation "
+                                   "probabilities must be smaller or equal to 1.0.")
+
+    offspring = []
+    for _ in range(lambda_):
+        op_choice = random.random()
+        if op_choice < cxpb:  # Apply crossover
+            ind1, ind2 = list(map(toolbox.clone, random.sample(population, 2)))
+            ind1, ind2 = toolbox.mate(ind1, ind2)
+            del ind1.fitness.values
+            offspring.append(ind1)
+        elif op_choice < cxpb + mutpb:  # Apply mutation
+            ind = toolbox.clone(random.choice(population))
+            ind, = toolbox.mutate(ind)
+            del ind.fitness.values
+            offspring.append(ind)
+        else:  # Apply reproduction
+            offspring.append(random.choice(population))
+
+    return offspring
 
 # some EA stuff...
 def varAnd(population, toolbox, cxpb, mutpb):

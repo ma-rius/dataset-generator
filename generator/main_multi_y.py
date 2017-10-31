@@ -4,6 +4,7 @@ import multiprocessing
 import numpy
 from deap import base
 from deap import creator
+
 from generator.functions import *
 
 # -------- Dataset Parameters --------
@@ -18,10 +19,17 @@ MAX_STRATEGY = 1  # max value standard deviation of the mutation
 population_size = 100  # number of individuals in each generation
 
 # -------- Run Parameters --------
-# complexity_measures = [0.2]
+complexity_measures = [0.2]
 # complexity_measures = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
-complexity_measures = [0.2, 0.4, 0.6, 0.8]
+# complexity_measures = [0.2, 0.4, 0.6, 0.8]
 amount_of_datasets_per_complexity_measure = 1
+num_subs = 3
+
+# stop if bullshit was entered
+if m % num_subs != 0:
+    sys.exit('%i attributes can not be split into %i equal-sized groups' % (m, num_subs))
+else:
+    m_subs = int(m / num_subs)
 
 # set print options for large arrays
 np.set_printoptions(threshold=np.inf, precision=2, linewidth=np.inf)
@@ -29,8 +37,9 @@ pd.set_option('expand_frame_repr', False)
 
 
 # initialize EA
-creator.create("FitnessMin", base.Fitness,
-               weights=(-1.0,))  # -1 for "minimize" (the difference of desired and actual complexity)
+# -1 for "minimize" (the difference of desired and actual complexity)
+# IMPORTANT: The tuple has the form (fitness_sub1, fitness_sub2, fitness_sub3, fitness_complete)
+creator.create("FitnessMin", base.Fitness, weights=(-1.0, -1.0, -1.0, -1.0))
 creator.create("Individual", array.array, typecode='d', fitness=creator.FitnessMin, strategy=None)
 creator.create("Strategy", array.array, typecode='d')
 
@@ -45,8 +54,8 @@ def main(mst_edges, b, path):
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("mate", tools.cxTwoPoint)
     toolbox.register("mutate", tools.mutFlipBit, indpb=1/n)
-    toolbox.register("select", tools.selTournament, tournsize=3)
-    # toolbox.register("select", tools.selNSGA2)
+    # toolbox.register("select", tools.selTournament, tournsize=3)
+    toolbox.register("select", tools.selNSGA2)
     toolbox.register("evaluate", evaluate, mst_edges=mst_edges, n=n, b=b)
 
     toolbox.decorate("mate", checkStrategy(MIN_STRATEGY))
@@ -56,19 +65,26 @@ def main(mst_edges, b, path):
     pop = toolbox.population(n=population_size)
 
     # store best individual of all evaluations in all populations and generations
-    hof = tools.HallOfFame(1)
-
+    # hof = tools.HallOfFame(1)
+    hof = tools.ParetoFront()
     # take care of some statistics of the population
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", numpy.mean)
     stats.register("std", numpy.std)
-    stats.register("min", numpy.min)
-    stats.register("max", numpy.max)
+    stats.register("min", numpy.min, axis=0)
+    stats.register("max", numpy.max, axis=0)
 
     # run the EA
-    eaSimple(pop, toolbox=toolbox, cxpb=0.85, mutpb=0.4, stats=stats,
-             halloffame=hof,
-             verbose=True)
+    # eaSimple(pop, toolbox=toolbox, cxpb=0.85, mutpb=0.4, stats=stats,
+    #          halloffame=hof,
+    #          verbose=True)
+    NGEN = 50
+    MU = 50
+    LAMBDA = 100
+    CXPB = 0.7
+    MUTPB = 0.2
+    eaMuPlusLambda(pop, toolbox, MU, LAMBDA, CXPB, MUTPB, NGEN, stats,
+                              halloffame=hof, verbose=True)
     share_class_1 = np.count_nonzero(hof[0]) / n
     # print('Best individual:', hof[0])
     print('Share of class 1:', share_class_1)
@@ -106,13 +122,34 @@ if __name__ == '__main__':
                 os.makedirs('../assets/complexity_%r' % complexity)
 
             # create data set (stores the file and returns the MST)
-            data_set_mst = create_dataset_and_or_mst(n=n, m=m, covariance_between_attributes=True, m_groups=3,
-                                          path='../assets/complexity_%r/data_%r.csv' % (complexity, (i+1)))
-            # pickle.dump(data_set_mst, open('../assets/mst_edges.pkl', 'wb'))
+            # data_set_mst = create_dataset_and_or_mst(n=n, m=m, covariance_between_attributes=True, m_groups=3,
+            #                               path='../assets/complexity_%r/data_%r.csv' % (complexity, (i+1)))
 
-            # data_set_mst = pickle.load(open('../assets/mst_edges.pkl', 'rb'))
+            mst_edges = []
+            for i_sub in range(num_subs):
+                # create sub data set (function stores the file and returns the MST)
+                data_set_mst = create_dataset_and_or_mst(n=n, m=m_subs, covariance_between_attributes=False,
+                                                         path='../assets/complexity_%r/data_%r_%r.csv' % (
+                                                         complexity, (i + 1), (i_sub + 1)))
+                mst_edges.append(data_set_mst)
 
-            main(mst_edges=data_set_mst, b=complexity, path='../assets/complexity_%r/data_%r.csv' % (complexity, (i+1)))
+            # combine subsets
+            data_set_combined = pd.DataFrame()
+            for i_sub in range(num_subs):
+                # concatenate columns
+                data_set_combined = pd.concat(
+                    [data_set_combined, pd.read_csv(filepath_or_buffer='../assets/complexity_%r/data_%r_%r.csv' % (
+                        complexity, (i + 1), (i_sub + 1)), usecols=[x for x in range(m_subs)])], axis=1,
+                    ignore_index=True)
+            data_set_combined.to_csv(path_or_buf='../assets/complexity_%r/data_%r.csv' % (complexity, (i + 1)),
+                                     index=False)
+            # get mst of final dataset
+            mst_final = create_dataset_and_or_mst(
+                path='../assets_/complexity_%r/data_%r.csv' % (complexity, (i + 1)), data=data_set_combined)
+
+            mst_edges.append(mst_final)
+
+            main(mst_edges=mst_edges, b=complexity, path='../assets/complexity_%r/data_%r.csv' % (complexity, (i+1)))
 
         print('Time for iteration', (i + 1), ':', time.time() - start_iter)
 
