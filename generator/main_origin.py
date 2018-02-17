@@ -72,7 +72,6 @@ def main(mst_edges, b, path):
     share_class_1 = np.count_nonzero(hof[0]) / n
     # print('Best individual:', hof[0])
     print('Share of class 1:', share_class_1)
-    # data = pd.read_csv(path, sep=';', decimal=',')
 
     # open file again
     data = pd.read_csv(path)
@@ -107,11 +106,9 @@ if __name__ == '__main__':
             # create data set (stores the file and returns the MST)
             data_set_mst = create_dataset_and_or_mst(n=n, m=m, covariance_between_attributes=True, m_groups=3,
                                           path='../assets/complexity_%r/data_%r.csv' % (complexity, (i+1)))
-            # pickle.dump(data_set_mst, open('../assets/mst_edges.pkl', 'wb'))
 
-            # data_set_mst = pickle.load(open('../assets/mst_edges.pkl', 'rb'))
-
-            main(mst_edges=data_set_mst, b=complexity, path='../assets/complexity_%r/data_%r.csv' % (complexity, (i+1)))
+            all_msts = [data_set_mst]  # here, we only have one mst (from the whole dataset), and no "sub" MSTs
+            main(mst_edges=all_msts, b=complexity, path='../assets/complexity_%r/data_%r.csv' % (complexity, (i+1)))
 
         print('Time for iteration', (i + 1), ':', time.time() - start_iter)
 
