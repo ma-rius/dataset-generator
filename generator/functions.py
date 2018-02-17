@@ -10,7 +10,6 @@ from scipy.spatial import distance
 
 
 # ----  Dataset Creation ----
-# stores the data set in specified path and returns the MST of the data
 def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=False, m_groups=1, data=None):
     """
     Creates the Dataset and stores it
@@ -40,7 +39,7 @@ def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=F
             # initialize covariance matrices (must be positive semi-definite)
             all_cov = []
             for g_cov in range(m_groups):
-                A = random.rand(m_per_group, m_per_group)
+                A = np.random.rand(m_per_group, m_per_group)
                 cov = np.dot(A, A.transpose())
                 all_cov.append(cov)
             # print(all_cov)
@@ -96,14 +95,22 @@ def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=F
     # noinspection PyTypeChecker
     mst_edges = (np.argwhere(mst != 0)).tolist()
     # print(mst)
-    # print(mst_edges)
+    print(mst_edges)
     return mst_edges
 
 
-# calculate complexity measure
-def complexity(individual, mst_edges, n, b):
+# ----  Complexity Measure ----
+def distance_to_desired_complexity(individual, mst_edges, n_instances, desired_complexity):
+    """
+    # calculates the difference of the actual and the desired complexity measure
+    :param individual: one individual of the population
+    :param mst_edges: the edges of an MST
+    :param n_instances: the number of instances in the dataset
+    :param desired_complexity: the desired complexity measure
+    :return: difference of actual and desired complexity measure
+    """
     # 1. Store the nodes of the spanning tree with different class.
-    nodes = [-1] * n
+    nodes = [-1] * n_instances
     for edge in mst_edges:
         if individual[edge[0]] != individual[edge[1]]:
             nodes[edge[0]] = 0
@@ -111,36 +118,38 @@ def complexity(individual, mst_edges, n, b):
 
     # 2. Compute the number of nodes of the spanning tree with different class.
     different = 0
-    for i in range(n):
+    for i in range(n_instances):
         if nodes[i] == 0:
             different += 1
     # print('different:', different)
-    complexity_ = abs(different / n - b)
+    complexity_ = abs(different / n_instances - desired_complexity)
     return complexity_
 
 
-# fitness function that counts the points according to Ho & Basu
-def evaluate(individual, mst_edges, n, b):
+# ----  EA Fitness Function ----
+def evaluate(individual, mst_edges, n_instances, desired_complexity):
+    """
+    The Fitness Function
+    :param individual: the individual of the EA
+    :param mst_edges: the edges of an MST
+    :param n_instances: the number of instances in the dataset
+    :param desired_complexity: the desired complexity measure
+    :return: tuple of fitness for each optimization objective
+    """
     fitness = ()  # fitness must be a tuple
     for mst_edges_ in mst_edges:
-        fitness += (complexity(individual, mst_edges_, n, b),)  # "append" each single fitness to fitness tuple
+        # "append" each single fitness to fitness tuple
+        fitness += (distance_to_desired_complexity(individual, mst_edges_, n_instances, desired_complexity),)
     # fitness += (abs(0.5 - (np.count_nonzero(individual)/n)),)  # "append" class share
     return fitness
 
 
-# old fitness function that counts the edges
-# "number of edges connecting points of opposite classes is counted and divided by the
-# total number of connections. This ratio is taken as the measure of boundary length."
-def evaluate_on_edges(individual, mst_edges, n, b):
-    boundary_length = 0
-    for edge in mst_edges:
-        if individual[edge[0]] != individual[edge[1]]:
-            boundary_length += 1
-    fitness = abs(boundary_length / n - b)  # distance between actual and desired boundary length
-    return fitness,
+# ########################################################
+# the remainder of this code is copied from deap but
+# implemented with a break condition to stop the EA
+# when the fitness has reached a specified level
+# ########################################################
 
-
-# copied from deap but implemented break condition
 def eaMuPlusLambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
                    stats=None, halloffame=None, verbose=__debug__):
     logbook = tools.Logbook()
@@ -164,7 +173,7 @@ def eaMuPlusLambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
     # for gen in range(1, ngen+1):
     gen = 1
     # while any(_ > 0.01 for _ in record['min']):
-    while any(_ > 0.01 for _ in halloffame[0].fitness.values[0:3]):
+    while any(_ > 0.01 for _ in halloffame[0].fitness.values[0:3]):  # the break condition
         # Vary the population
         offspring = varOr(population, toolbox, lambda_, cxpb, mutpb)
         # print(record)
@@ -191,12 +200,7 @@ def eaMuPlusLambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
     return population, logbook
 
 
-# ########################################################
-# the remainder of this code is copied from deap but
-# implemented with a break condition to stop the EA
-# when the fitness has reached a specified level
-# ########################################################
-
+# copied from deap
 def eaSimple(population, toolbox, cxpb, mutpb, stats=None,
              halloffame=None, verbose=__debug__):
     logbook = tools.Logbook()
@@ -219,7 +223,7 @@ def eaSimple(population, toolbox, cxpb, mutpb, stats=None,
     # Begin the generational process
     gen = 1
     # print('Record:', record)
-    while record['min'] > 0.01:
+    while record['min'] > 0.01:  # the break condition
     # while gen < 100:
         # for i in range(0):
         # Select the next generation individuals
@@ -252,7 +256,7 @@ def eaSimple(population, toolbox, cxpb, mutpb, stats=None,
     return population, logbook
 
 
-# some EA stuff...
+# copied from deap
 def varOr(population, toolbox, lambda_, cxpb, mutpb):
     assert (cxpb + mutpb) <= 1.0, ("The sum of the crossover and mutation "
                                    "probabilities must be smaller or equal to 1.0.")
@@ -276,7 +280,7 @@ def varOr(population, toolbox, lambda_, cxpb, mutpb):
     return offspring
 
 
-# some EA stuff...
+# copied from deap
 def varAnd(population, toolbox, cxpb, mutpb):
     offspring = [toolbox.clone(ind) for ind in population]
 
@@ -294,7 +298,7 @@ def varAnd(population, toolbox, cxpb, mutpb):
     return offspring
 
 
-# some EA strategy stuff...
+# copied from deap
 def generateES(icls, scls, size, imin, imax, smin, smax):
     ind = icls(np.random.randint(size=size, low=imin, high=imax))
     ind.strategy = scls(np.random.randint(size=size, low=smin, high=smax))
@@ -302,7 +306,7 @@ def generateES(icls, scls, size, imin, imax, smin, smax):
     return ind
 
 
-# some EA strategy stuff...
+# copied from deap
 def checkStrategy(minstrategy):
     def decorator(func):
         def wrappper(*args, **kargs):
