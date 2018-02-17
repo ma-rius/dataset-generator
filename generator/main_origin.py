@@ -4,7 +4,7 @@ import multiprocessing
 import numpy
 from deap import base
 from deap import creator
-from generator.functions import *
+from generator.helpers import *
 
 # -------- Dataset Parameters --------
 n = 1000  # number of instances
@@ -47,7 +47,7 @@ def main(mst_edges, b, path):
     toolbox.register("mutate", tools.mutFlipBit, indpb=1/n)
     toolbox.register("select", tools.selTournament, tournsize=3)
     # toolbox.register("select", tools.selNSGA2)
-    toolbox.register("evaluate", evaluate, mst_edges=mst_edges, n=n, b=b)
+    toolbox.register("evaluate", evaluate, mst_edges=mst_edges, n_instances=n, desired_complexity=b)
 
     toolbox.decorate("mate", checkStrategy(MIN_STRATEGY))
     toolbox.decorate("mutate", checkStrategy(MIN_STRATEGY))
