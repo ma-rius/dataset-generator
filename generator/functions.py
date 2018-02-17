@@ -12,6 +12,16 @@ from scipy.spatial import distance
 # ----  Dataset Creation ----
 # stores the data set in specified path and returns the MST of the data
 def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=False, m_groups=1, data=None):
+    """
+    Creates the Dataset and stores it
+    :param n: the desired amount of instances
+    :param m: the desired amount of features
+    :param path: the path to store the dataset in
+    :param covariance_between_attributes: True if the features shall be correlated
+    :param m_groups: amount of groups
+    :param data: if data already exists, the function uses this data to create a MST and omits the data set creation
+    :return: the edges of the MST of the data
+    """
     if data is None:
         data_ = pd.DataFrame()
 
@@ -38,16 +48,18 @@ def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=F
 
             # get values that follow the specified distribution
             for group in range(m_groups):
-                data_ = pd.concat([data_, pd.DataFrame(np.random.multivariate_normal(all_means[group], all_cov[group], n))],
-                                 axis=1,
-                                 ignore_index=True)
+                data_ = pd.concat(
+                    [data_, pd.DataFrame(np.random.multivariate_normal(all_means[group], all_cov[group], n))],
+                    axis=1,
+                    ignore_index=True)
 
         # for independent attributes:
         else:
             for attr in range(m):
                 # concatenate columns: each column follows a normal distribution
-                data_ = pd.concat([data_, pd.DataFrame(np.random.normal(random.randint(10, 100), np.random.rand(1)*5, n))],
-                                 axis=1, ignore_index=True)
+                data_ = pd.concat(
+                    [data_, pd.DataFrame(np.random.normal(random.randint(10, 100), np.random.rand(1) * 5, n))],
+                    axis=1, ignore_index=True)
     else:
         data_ = data
         print('Now processing merged labels from sub data sets.')
@@ -103,8 +115,8 @@ def complexity(individual, mst_edges, n, b):
         if nodes[i] == 0:
             different += 1
     # print('different:', different)
-    fitness = abs(different / n - b)
-    return fitness
+    complexity_ = abs(different / n - b)
+    return complexity_
 
 
 # fitness function that counts the points according to Ho & Basu
@@ -112,7 +124,7 @@ def evaluate(individual, mst_edges, n, b):
     fitness = ()  # fitness must be a tuple
     for mst_edges_ in mst_edges:
         fitness += (complexity(individual, mst_edges_, n, b),)  # "append" each single fitness to fitness tuple
-
+    # fitness += (abs(0.5 - (np.count_nonzero(individual)/n)),)  # "append" class share
     return fitness
 
 
@@ -131,14 +143,12 @@ def evaluate_on_edges(individual, mst_edges, n, b):
 # copied from deap but implemented break condition
 def eaMuPlusLambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
                    stats=None, halloffame=None, verbose=__debug__):
-
     logbook = tools.Logbook()
     logbook.header = ['gen', 'nevals'] + (stats.fields if stats else [])
 
     # Evaluate the individuals with an invalid fitness
     invalid_ind = [ind for ind in population if not ind.fitness.valid]
     fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
-
     for ind, fit in zip(invalid_ind, fitnesses):
         ind.fitness.values = fit
 
@@ -153,10 +163,11 @@ def eaMuPlusLambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
     # Begin the generational process
     # for gen in range(1, ngen+1):
     gen = 1
-    while all(_ > 0.01 for _ in record['min']):
+    # while any(_ > 0.01 for _ in record['min']):
+    while any(_ > 0.01 for _ in halloffame[0].fitness.values[0:3]):
         # Vary the population
         offspring = varOr(population, toolbox, lambda_, cxpb, mutpb)
-
+        # print(record)
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
@@ -166,7 +177,7 @@ def eaMuPlusLambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
         # Update the hall of fame with the generated individuals
         if halloffame is not None:
             halloffame.update(offspring)
-
+        print('%.4f %.4f %.4f %.4f' % halloffame[0].fitness.values)
         # Select the next generation population
         population[:] = toolbox.select(population + offspring, mu)
 
@@ -176,11 +187,16 @@ def eaMuPlusLambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
         logbook.record(gen=gen, nevals=len(invalid_ind), **record)
         if verbose:
             print(logbook.stream)
-    gen += 1
+        gen += 1
     return population, logbook
 
 
-# copied from deap but implemented break condition
+# ########################################################
+# the remainder of this code is copied from deap but
+# implemented with a break condition to stop the EA
+# when the fitness has reached a specified level
+# ########################################################
+
 def eaSimple(population, toolbox, cxpb, mutpb, stats=None,
              halloffame=None, verbose=__debug__):
     logbook = tools.Logbook()
@@ -203,9 +219,9 @@ def eaSimple(population, toolbox, cxpb, mutpb, stats=None,
     # Begin the generational process
     gen = 1
     # print('Record:', record)
-    # while record['min'] > 0.01:
-    while gen < 100:
-    # for i in range(0):
+    while record['min'] > 0.01:
+    # while gen < 100:
+        # for i in range(0):
         # Select the next generation individuals
         offspring = toolbox.select(population, len(population))
 
@@ -258,6 +274,7 @@ def varOr(population, toolbox, lambda_, cxpb, mutpb):
             offspring.append(random.choice(population))
 
     return offspring
+
 
 # some EA stuff...
 def varAnd(population, toolbox, cxpb, mutpb):

@@ -75,7 +75,6 @@ def main(mst_edges, b, path):
     # data = pd.read_csv(path, sep=';', decimal=',')
 
     # open file again
-    # TODO it's ugly af
     data = pd.read_csv(path)
 
     # store labels

@@ -5,7 +5,7 @@ import numpy
 from deap import base
 from deap import creator
 from generator.functions import *
-import generator.disprove_niklas as dpn
+# import generator.disprove_niklas as dpn
 
 # -------- Dataset Parameters --------
 n = 1000  # number of instances
@@ -84,7 +84,6 @@ def main(mst_edges, b, path):
     # data = pd.read_csv(path, sep=';', decimal=',')
 
     # open file again
-    # TODO it's ugly af
     data = pd.read_csv(path)
 
     # store labels

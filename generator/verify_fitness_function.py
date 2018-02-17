@@ -1,3 +1,9 @@
+"""
+This script was used to verify the fitness function (i.e. the complexity of a given dataset).
+It generates a random data set and calculates the complexity.
+This dataset could then be used to check if the complexity was the same as the one calculated by
+the "Data Complexity Library in C++" (Albert Orriols-Puig, Núria Macià, and Tin Kam Ho).
+"""
 import csv
 import random
 from random import randint
@@ -13,8 +19,6 @@ m = 5  # number of features
 n = 10  # number of instances
 b = 1 / n  # the desired complexity, defined by the length of the class boundary, b ∈[0,1].
 
-# TODO make algorithm dependent on l or simply on max number of classes C
-# TODO include parameter for minority class
 # -------- End Dataset Parameters --------
 
 
@@ -29,7 +33,7 @@ print('initialize distribution')
 progress_bar_distribution = ProgressBar()
 for j in progress_bar_distribution(range(0, m, 1)):
     # set distribution for feature j
-    mu = random.randint(0, 100)  # TODO make specified number of attributes dependent on each other
+    mu = random.randint(0, 100)
     sigma = random.randint(0, 100)
     # print('Mu: %d, Sigma: %s' % (mu, sigma))
     distribution_dict.update({j: [mu, sigma]})
@@ -39,17 +43,17 @@ progress_bar_random = ProgressBar()
 for i in progress_bar_random(range(0, n, 1)):
     instance = []
     for j in range(0, m, 1):
-        instance.append(np.random.normal(distribution_dict[j][0], distribution_dict[j][1], 1)[0])  # TODO float
+        instance.append(np.random.normal(distribution_dict[j][0], distribution_dict[j][1], 1)[0])
     instances.update({i: instance})
 
 # store data in csv file
 with open('../assets/verify_data.csv', 'w') as f:
     print('write instances to file')
     progress_bar_file = ProgressBar()
-    wtr = csv.writer(f, delimiter=',')  # TODO Semicolon as delimiter
+    wtr = csv.writer(f, delimiter=',')
     # create top line in csv
     top_line = []
-    for title in range(m):  # TODO ugly af
+    for title in range(m):
         top_line.append(title)
     top_line.append('label')
     wtr.writerow(top_line)
@@ -87,13 +91,13 @@ print(graph)
 # -------- calculate Minimum Spanning Tree --------
 print('calculate Minimum Spanning Tree')
 #  noinspection PyTypeChecker
-mst = minimum_spanning_tree(graph, overwrite=True).toarray()  # TODO check if overwrite = True has no bad influences
+mst = minimum_spanning_tree(graph, overwrite=True).toarray()
 print(mst)
 
 #  -------- randomly generate labels --------
 labels = []
 for i in range(n):
-    labels.append(randint(1,2))
+    labels.append(randint(1, 2))
 
 # -------- calculate complexity measure --------
 boundary_length = 0
