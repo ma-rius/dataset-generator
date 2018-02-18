@@ -24,8 +24,6 @@ dist = np.triu(
     distance.cdist(data_[data_[:].columns.difference(['label'])], data_[data_[:].columns.difference(['label'])],
                    'euclidean'))
 
-# print(dist)
-
 # calculate Minimum Spanning Tree
 mst = minimum_spanning_tree(dist, overwrite=False).toarray()
 
@@ -56,7 +54,7 @@ def complexity(individual, mst_edges, n):
     for i in range(n):
         if nodes[i] == 0:
             different += 1
-    # print('different:', different)
+
     complexity_ = different / n
     return complexity_
 
