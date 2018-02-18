@@ -1,18 +1,17 @@
+
 import os
 import array
 import multiprocessing
 import numpy
 from deap import base
 from deap import creator
-from generator.functions import *
-# import generator.disprove_niklas as dpn
+from generator.helpers import *
 
 # -------- Dataset Parameters --------
 n = 1000  # number of instances
 m = 15  # number of attributes
 num_subs = 3  # number of sub classifiers
 
-# stop if bullshit was entered
 if m % num_subs != 0:
     sys.exit('%i attributes can not be split into %i equal-sized groups' % (m, num_subs))
 else:
@@ -27,7 +26,7 @@ population_size = 100  # number of individuals in each generation
 
 # -------- Run Parameters --------
 # complexity_measures = [0.2]
-meta_complexities = [0.03]
+meta_complexities = [0.2]
 # complexity_measures = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
 # complexity_measures = [0.2, 0.4, 0.6, 0.8]
 amount_of_datasets_per_complexity_measure = 1
@@ -56,7 +55,7 @@ def main(mst_edges, b, path):
     toolbox.register("mutate", tools.mutShuffleIndexes, indpb=1/n)
     toolbox.register("select", tools.selTournament, tournsize=3)
     # toolbox.register("select", tools.selNSGA2)
-    toolbox.register("evaluate", evaluate, mst_edges=mst_edges, n=n, b=b)
+    toolbox.register("evaluate", evaluate, mst_edges=mst_edges, n_instances=n, desired_complexity=b)
 
     toolbox.decorate("mate", checkStrategy(MIN_STRATEGY))
     toolbox.decorate("mutate", checkStrategy(MIN_STRATEGY))
@@ -137,7 +136,7 @@ if __name__ == '__main__':
                                                        path='../assets/complexity_%r/data_%r_labels.csv' % (
                                                            meta_complexity, (i + 1)))
 
-                share_class_1 = main(mst_edges=labels_mst, b=meta_complexity,
+                share_class_1 = main(mst_edges=[labels_mst], b=meta_complexity,
                      path='../assets/complexity_%r/data_%r_labels.csv' % (meta_complexity, (i + 1)))
 
                 y_complete = pd.read_csv(filepath_or_buffer='../assets/complexity_%r/data_%r_labels.csv' % (
@@ -166,7 +165,7 @@ if __name__ == '__main__':
                 # evaluate meta
                 mst_final = create_dataset_and_or_mst(path='../assets_/complexity_%r/data_%r.csv' % (meta_complexity, (i + 1)),
                                                       data=data_set_combined)
-                comp = dpn.evaluate(y_complete['label'].as_matrix(), mst_final, n)
+                comp = complexity(y_complete['label'].as_matrix(), mst_final, n)
                 print('Meta', meta_complexity)
                 print('Complexity:', comp)
 

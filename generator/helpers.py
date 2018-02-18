@@ -4,7 +4,6 @@ import sys
 import numpy as np
 import pandas as pd
 from deap import tools
-# from scipy import random
 from scipy.sparse.csgraph import minimum_spanning_tree
 from scipy.spatial import distance
 
@@ -33,7 +32,6 @@ def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=F
             for g_mean in range(m_groups):
                 mean = np.random.randint(100, size=m_per_group)
                 all_means.append(mean)
-            # print('Mean Vectors: \n', all_means)
             print('Mean Vector created.')
 
             # initialize covariance matrices (must be positive semi-definite)
@@ -42,7 +40,6 @@ def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=F
                 A = np.random.rand(m_per_group, m_per_group)
                 cov = np.dot(A, A.transpose())
                 all_cov.append(cov)
-            # print(all_cov)
             print('Covariance Matrix created.')
 
             # get values that follow the specified distribution
@@ -68,8 +65,6 @@ def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=F
 
     # save in csv file
     print('Store numbers in csv file...')
-    # data.to_csv(path_or_buf=path, sep=';', header=data[:].columns.values.tolist(), index=False,
-    #             decimal=',')
     data_.to_csv(path_or_buf=path, header=data_[:].columns.values.tolist(), index=False)
 
     # ----  End of Dataset Creation ----
@@ -81,7 +76,6 @@ def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=F
         distance.cdist(data_[data_[:].columns.difference(['label'])], data_[data_[:].columns.difference(['label'])],
                        'euclidean'))
     print('Distance Matrix calculated in', time.time() - start, 'seconds.')
-    # print(dist)
 
     # calculate Minimum Spanning Tree
     start = time.time()
@@ -94,12 +88,26 @@ def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=F
     print('Get row and column indices of non-zero values in MST...')
     # noinspection PyTypeChecker
     mst_edges = (np.argwhere(mst != 0)).tolist()
-    # print(mst)
-    print(mst_edges)
     return mst_edges
 
 
 # ----  Complexity Measure ----
+def complexity(individual, mst_edges, n_instances):
+    # 1. Store the nodes of the spanning tree with different class.
+    nodes = [-1] * n_instances
+    for edge in mst_edges:
+        if individual[edge[0]] != individual[edge[1]]:
+            nodes[edge[0]] = 0
+            nodes[edge[1]] = 0
+
+    # 2. Compute the number of nodes of the spanning tree with different class.
+    different = 0
+    for i in range(n_instances):
+        if nodes[i] == 0:
+            different += 1
+    return different / n_instances
+
+
 def distance_to_desired_complexity(individual, mst_edges, n_instances, desired_complexity):
     """
     # calculates the difference of the actual and the desired complexity measure
@@ -121,7 +129,6 @@ def distance_to_desired_complexity(individual, mst_edges, n_instances, desired_c
     for i in range(n_instances):
         if nodes[i] == 0:
             different += 1
-    # print('different:', different)
     complexity_ = abs(different / n_instances - desired_complexity)
     return complexity_
 
@@ -176,13 +183,11 @@ def eaMuPlusLambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
     while any(_ > 0.01 for _ in halloffame[0].fitness.values[0:3]):  # the break condition
         # Vary the population
         offspring = varOr(population, toolbox, lambda_, cxpb, mutpb)
-        # print(record)
         # Evaluate the individuals with an invalid fitness
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         fitnesses = toolbox.map(toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
-            # print(ind.fitness.values)
         # Update the hall of fame with the generated individuals
         if halloffame is not None:
             halloffame.update(offspring)
@@ -192,7 +197,6 @@ def eaMuPlusLambda(population, toolbox, mu, lambda_, cxpb, mutpb, ngen,
 
         # Update the statistics with the new population
         record = stats.compile(population) if stats is not None else {}
-        # print(record)
         logbook.record(gen=gen, nevals=len(invalid_ind), **record)
         if verbose:
             print(logbook.stream)
@@ -222,10 +226,8 @@ def eaSimple(population, toolbox, cxpb, mutpb, stats=None,
 
     # Begin the generational process
     gen = 1
-    # print('Record:', record)
     while record['min'] > 0.01:  # the break condition
     # while gen < 100:
-        # for i in range(0):
         # Select the next generation individuals
         offspring = toolbox.select(population, len(population))
 
@@ -302,7 +304,6 @@ def varAnd(population, toolbox, cxpb, mutpb):
 def generateES(icls, scls, size, imin, imax, smin, smax):
     ind = icls(np.random.randint(size=size, low=imin, high=imax))
     ind.strategy = scls(np.random.randint(size=size, low=smin, high=smax))
-    # print(ind)
     return ind
 
 

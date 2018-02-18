@@ -1,3 +1,6 @@
+"""
+Determine the labels in relation to the whole dataset (no sub datasets)
+"""
 import os
 import array
 import multiprocessing
@@ -18,10 +21,8 @@ MAX_STRATEGY = 1  # max value standard deviation of the mutation
 population_size = 100  # number of individuals in each generation
 
 # -------- Run Parameters --------
-# complexity_measures = [0.2]
-# complexity_measures = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
 complexity_measures = [0.2, 0.4, 0.6, 0.8]
-amount_of_datasets_per_complexity_measure = 1
+amount_of_datasets_per_complexity_measure = 10
 
 # set print options for large arrays
 np.set_printoptions(threshold=np.inf, precision=2, linewidth=np.inf)

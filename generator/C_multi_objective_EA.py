@@ -1,16 +1,18 @@
+"""
+Multi-objective EA
+"""
 import os
 import array
 import multiprocessing
 import numpy
 from deap import base
 from deap import creator
-from deap import algorithms
-from deap import gp
 
-from generator.functions import *
+
+from generator.helpers import *
 
 # -------- Dataset Parameters --------
-n = 10000  # number of instances
+n = 100  # number of instances
 m = 15  # number of attributes
 
 # -------- GA Parameters --------
@@ -27,7 +29,7 @@ complexity_measures = [0.3]
 amount_of_datasets_per_complexity_measure = 1
 num_subs = 3
 
-# stop if bullshit was entered
+
 if m % num_subs != 0:
     sys.exit('%i attributes can not be split into %i equal-sized groups' % (m, num_subs))
 else:
@@ -59,7 +61,7 @@ def main(mst_edges, b, path):
     # toolbox.register("mutate", gp.mutEphemeral, mode='all')
     # toolbox.register("select", tools.selTournament, tournsize=3)
     toolbox.register("select", tools.selNSGA2)
-    toolbox.register("evaluate", evaluate, mst_edges=mst_edges, n=n, b=b)
+    toolbox.register("evaluate", evaluate, mst_edges=mst_edges, n_instances=n, desired_complexity=b)
 
     toolbox.decorate("mate", checkStrategy(MIN_STRATEGY))
     toolbox.decorate("mutate", checkStrategy(MIN_STRATEGY))

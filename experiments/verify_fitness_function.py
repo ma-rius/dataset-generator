@@ -14,11 +14,22 @@ from joblib import Parallel, delayed
 from progressbar import ProgressBar
 from scipy.sparse.csgraph import minimum_spanning_tree
 
+
+def calc_distances(p):
+    row = []
+    for q in range(0, p + 1, 1):
+        row.append(0)
+    for q in range(p + 1, n, 1):
+        u, v = instances[p], instances[q]
+        d = dist.euclidean(u, v)
+        row.append(d)
+    return row
+
+
 # -------- Dataset Parameters --------
 m = 5  # number of features
 n = 10  # number of instances
 b = 1 / n  # the desired complexity, defined by the length of the class boundary, b ∈[0,1].
-
 # -------- End Dataset Parameters --------
 
 
@@ -62,22 +73,6 @@ with open('../assets/verify_data.csv', 'w') as f:
         wtr.writerow(instances[index])
 
 
-# ----------------------------------------------
-
-
-# -------- build distance matrix --------
-def calc_distances(p):
-    row = []
-    for q in range(0, p + 1, 1):
-        row.append(0)
-    for q in range(p + 1, n, 1):
-        u, v = instances[p], instances[q]
-        d = dist.euclidean(u, v)
-        # d = np.linalg.norm(np.array(u) - np.array(v))  # about twice as fast as dist.euclidean
-        row.append(d)
-    return row
-
-
 print('calculate distances')
 progress_bar_random = ProgressBar()
 pool = Parallel(n_jobs=-1, verbose=1)
@@ -86,7 +81,6 @@ results = pool(delayed(calc_distances)(p) for p in progress_bar_random(range(0, 
 graph = np.array(results)
 print(graph)
 
-# ----------------------------------------------
 
 # -------- calculate Minimum Spanning Tree --------
 print('calculate Minimum Spanning Tree')
