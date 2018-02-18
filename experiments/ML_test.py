@@ -1,5 +1,5 @@
-import matplotlib as plt
-plt.use('Agg')
+# import matplotlib as plt
+# plt.use('Agg')
 import matplotlib.pyplot as plt
 from numpy import genfromtxt
 import pandas as pd
@@ -29,10 +29,10 @@ np.set_printoptions(threshold=np.inf, precision=2, linewidth=np.inf)
 pd.set_option('expand_frame_repr', False)
 
 complexity_measures = [0.2, 0.4, 0.6, 0.8]
-num_data_sets = 5
+num_data_sets = 1
 
 # define number of attributes in Test set
-num_attributes = 15
+num_attributes = 6
 
 data_to_plot = []
 
@@ -88,11 +88,9 @@ for complexity in complexity_measures:
 
     data_to_plot.append(all_results_for_one_complexity)
 
-# fig = plt.figure()
-# ax = fig.add_subplot(111)
-# ax.boxplot(data_to_plot, patch_artist=True)
-
-plt.boxplot(data_to_plot, positions=complexity_measures)
-# plt.xticks(complexity_measures)
+fig = plt.figure(1, figsize=(9, 6))
+ax = fig.add_subplot(111)
+ax.boxplot(data_to_plot)
+ax.set_xticklabels(complexity_measures)
 # plt.show()
 plt.savefig('../charts/m=%r' % num_attributes)
