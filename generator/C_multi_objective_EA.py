@@ -79,10 +79,6 @@ def main(mst_edges, b, path):
     stats.register("min", numpy.min, axis=0)
     stats.register("max", numpy.max, axis=0)
 
-    # run the EA
-    # eaSimple(pop, toolbox=toolbox, cxpb=0.85, mutpb=0.4, stats=stats,
-    #          halloffame=hof,
-    #          verbose=True)
     NGEN = 5000
     MU = 30
     LAMBDA = 60
@@ -90,10 +86,9 @@ def main(mst_edges, b, path):
     MUTPB = 0.55
     eaMuPlusLambda(pop, toolbox, MU, LAMBDA, CXPB, MUTPB, NGEN, stats,
                    halloffame=hof, verbose=False)
+
     share_class_1 = np.count_nonzero(hof[0]) / n
-    # print('Best individual:', hof[0])
     print('Share of class 1:', share_class_1)
-    # data = pd.read_csv(path, sep=';', decimal=',')
 
     # open file again
     data = pd.read_csv(path)
@@ -124,13 +119,8 @@ if __name__ == '__main__':
             # create folder for each complexity measure if not existent
             if not os.path.exists('../assets/complexity_%r' % complexity):
                 os.makedirs('../assets/complexity_%r' % complexity)
-            if not os.path.exists('../assets_/complexity_%r' % complexity):
-                os.makedirs('../assets_/complexity_%r' % complexity)
 
-            # create data set (stores the file and returns the MST)
-            # data_set_mst = create_dataset_and_or_mst(n=n, m=m, covariance_between_attributes=True, m_groups=3,
-            #                               path='../assets/complexity_%r/data_%r.csv' % (complexity, (i+1)))
-
+            # create list of MSTs for each sub dataset
             mst_edges = []
             for i_sub in range(num_subs):
                 # create sub data set (function stores the file and returns the MST)
@@ -150,11 +140,11 @@ if __name__ == '__main__':
             data_set_combined.to_csv(path_or_buf='../assets/complexity_%r/data_%r.csv' % (complexity, (i + 1)),
                                      index=False)
             # get mst of final dataset
-            mst_final = create_dataset_and_or_mst(
-                path='../assets_/complexity_%r/data_%r.csv' % (complexity, (i + 1)), data=data_set_combined)
+            mst_final = create_dataset_and_or_mst(data=data_set_combined, save_file=False)
 
             mst_edges.append(mst_final)
 
+            # run EA
             main(mst_edges=mst_edges, b=complexity, path='../assets/complexity_%r/data_%r.csv' % (complexity, (i + 1)))
 
         print('Time for iteration', (i + 1), ':', time.time() - start_iter)

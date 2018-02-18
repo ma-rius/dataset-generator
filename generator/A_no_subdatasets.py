@@ -70,8 +70,8 @@ def main(mst_edges, b, path):
     eaSimple(pop, toolbox=toolbox, cxpb=0.85, mutpb=0.4, stats=stats,
              halloffame=hof,
              verbose=True)
+
     share_class_1 = np.count_nonzero(hof[0]) / n
-    # print('Best individual:', hof[0])
     print('Share of class 1:', share_class_1)
 
     # open file again
@@ -105,10 +105,10 @@ if __name__ == '__main__':
                 os.makedirs('../assets/complexity_%r' % complexity)
 
             # create data set (stores the file and returns the MST)
-            data_set_mst = create_dataset_and_or_mst(n=n, m=m, covariance_between_attributes=True, m_groups=3,
-                                          path='../assets/complexity_%r/data_%r.csv' % (complexity, (i+1)))
+            data_set_mst = create_dataset_and_or_mst(n=n, m=m, covariance_between_attributes=True,
+                                                     path='../assets/complexity_%r/data_%r.csv' % (complexity, (i + 1)))
 
-            all_msts = [data_set_mst]  # here, we only have one mst (from the whole dataset), and no "sub" MSTs
+            all_msts = [data_set_mst]  # here, we only have one MST (from the whole dataset), and no "sub" MSTs
             main(mst_edges=all_msts, b=complexity, path='../assets/complexity_%r/data_%r.csv' % (complexity, (i+1)))
 
         print('Time for iteration', (i + 1), ':', time.time() - start_iter)

@@ -77,9 +77,7 @@ def main(mst_edges, b, path):
              halloffame=hof,
              verbose=True)
     share_class_1 = np.count_nonzero(hof[0]) / n
-    # print('Best individual:', hof[0])
     print('Share of class 1:', share_class_1)
-    # data = pd.read_csv(path, sep=';', decimal=',')
 
     # open file again
     data = pd.read_csv(path)
@@ -107,76 +105,67 @@ if __name__ == '__main__':
 
         # loop through each complexity
         for meta_complexity in meta_complexities:
-            share_class_1 = 1
-            comp = 1
-            while share_class_1 < 0.2 or (1 - share_class_1) < 0.2 or comp > 0.4:
-                print('Meta Complexity: %r\n' % meta_complexity)
+            # create folder for each complexity measure if not existent
+            if not os.path.exists('../assets/complexity_%r' % meta_complexity):
+                os.makedirs('../assets/complexity_%r' % meta_complexity)
 
-                # create folder for each complexity measure if not existent
-                if not os.path.exists('../assets/complexity_%r' % meta_complexity):
-                    os.makedirs('../assets/complexity_%r' % meta_complexity)
+            for i_sub in range(num_subs):
+                # create sub dataset (function stores the file and returns the MST)
+                data_set_mst = create_dataset_and_or_mst(n=n, m=m_subs, covariance_between_attributes=False,
+                                                         path='../assets/complexity_%r/data_%r_%r.csv' % (
+                                                             meta_complexity, (i + 1), (i_sub + 1)))
 
-                for i_sub in range(num_subs):
-                    # create sub data set (function stores the file and returns the MST)
-                    data_set_mst = create_dataset_and_or_mst(n=n, m=m_subs, covariance_between_attributes=False,
-                                                             path='../assets/complexity_%r/data_%r_%r.csv' % (
-                                                                 meta_complexity, (i + 1), (i_sub + 1)))
+                # run EA on sub dataset and store data set with labels
+                main(mst_edges=[data_set_mst], b=meta_complexity,
+                     path='../assets/complexity_%r/data_%r_%r.csv' % (meta_complexity, (i + 1), (i_sub + 1)))
 
-                    # run EA and store data set with labels
-                    main(mst_edges=[data_set_mst], b=meta_complexity,
-                         path='../assets/complexity_%r/data_%r_%r.csv' % (meta_complexity, (i + 1), (i_sub + 1)))
+            # create dataset from labels of sub datasets
+            labels_dataset = pd.DataFrame()
+            for i_sub in range(num_subs):
+                # concatenate columns
+                labels_dataset = pd.concat(
+                    [labels_dataset, pd.read_csv(filepath_or_buffer='../assets/complexity_%r/data_%r_%r.csv' % (
+                        meta_complexity, (i + 1), (i_sub + 1)), usecols=['label'])], axis=1, ignore_index=True)
 
-                # create dataset from labels of sub datasets
-                labels_dataset = pd.DataFrame()
-                for i_sub in range(num_subs):
-                    # concatenate columns
-                    labels_dataset = pd.concat(
-                        [labels_dataset, pd.read_csv(filepath_or_buffer='../assets/complexity_%r/data_%r_%r.csv' % (
-                            meta_complexity, (i + 1), (i_sub + 1)), usecols=['label'])], axis=1, ignore_index=True)
+            # get MST of labels dataset
+            labels_mst = create_dataset_and_or_mst(data=labels_dataset,
+                                                   path='../assets/complexity_%r/data_%r_labels.csv' % (
+                                                       meta_complexity, (i + 1)))
 
-                # get MST of labels dataset
-                labels_mst = create_dataset_and_or_mst(data=labels_dataset,
-                                                       path='../assets/complexity_%r/data_%r_labels.csv' % (
-                                                           meta_complexity, (i + 1)))
-                for meta in meta_complexities:
-                    share_class_1 = 1
-                    comp = 1
-                    count = 1
-                    while share_class_1 < 0.1 or (1 - share_class_1) < 0.1 or comp > 0.4:
-                        count += 1
-                        share_class_1 = main(mst_edges=[labels_mst], b=meta,
-                                             path='../assets/complexity_%r/data_%r_labels.csv' % (meta_complexity, (i + 1)))
+            # run EA on labels dataset (and store labels (y_complete) in file)
+            share_class_1 = main(mst_edges=[labels_mst], b=meta_complexity,
+                                 path='../assets/complexity_%r/data_%r_labels.csv' % (meta_complexity, (i + 1)))
 
-                        y_complete = pd.read_csv(filepath_or_buffer='../assets/complexity_%r/data_%r_labels.csv' % (
-                            meta_complexity, (i + 1)), usecols=['label'])
-                        print(y_complete['label'].as_matrix())
-                        # combine subsets
-                        data_set_combined = pd.DataFrame()
-                        for i_sub in range(num_subs):
-                            # concatenate columns
-                            data_set_combined = pd.concat(
-                                [data_set_combined,
-                                 pd.read_csv(filepath_or_buffer='../assets/complexity_%r/data_%r_%r.csv' % (
-                                     meta_complexity, (i + 1), (i_sub + 1)), usecols=[x for x in range(m_subs)])], axis=1,
-                                ignore_index=True)
+            # get y from labels dataset
+            y_complete = pd.read_csv(filepath_or_buffer='../assets/complexity_%r/data_%r_labels.csv' % (
+                meta_complexity, (i + 1)), usecols=['label'])
 
-                        # append y_complete
-                        data_set_combined = pd.concat(
-                            [data_set_combined,
-                             pd.read_csv(filepath_or_buffer='../assets/complexity_%r/data_%r_labels.csv' % (
-                                 meta_complexity, (i + 1)), usecols=['label'])], axis=1, ignore_index=False)
-                        # print(data_set_combined)
-                        # store combined dataset
-                        data_set_combined.to_csv(
-                            path_or_buf='../assets/complexity_%r/data_%r.csv' % (meta_complexity, (i + 1)),
-                            index=False)
+            # combine subsets
+            data_set_combined = pd.DataFrame()
+            for i_sub in range(num_subs):
+                # concatenate columns
+                data_set_combined = pd.concat(
+                    [data_set_combined,
+                     pd.read_csv(filepath_or_buffer='../assets/complexity_%r/data_%r_%r.csv' % (
+                         meta_complexity, (i + 1), (i_sub + 1)), usecols=[x for x in range(m_subs)])], axis=1,
+                    ignore_index=True)
 
-                        # evaluate meta
-                        mst_final = create_dataset_and_or_mst(data=data_set_combined, save_file=False)
-                        comp = complexity(individual=y_complete['label'].as_matrix(), mst_edges=mst_final, n_instances=n)
-                        print('Meta', meta)
-                        print('Complexity:', comp)
-                        break
+            # append y_complete
+            data_set_combined = pd.concat(
+                [data_set_combined,
+                 pd.read_csv(filepath_or_buffer='../assets/complexity_%r/data_%r_labels.csv' % (
+                     meta_complexity, (i + 1)), usecols=['label'])], axis=1, ignore_index=False)
+
+            # store combined dataset
+            data_set_combined.to_csv(
+                path_or_buf='../assets/complexity_%r/data_%r.csv' % (meta_complexity, (i + 1)),
+                index=False)
+
+            # evaluate combined dataset
+            mst_final = create_dataset_and_or_mst(data=data_set_combined, save_file=False)
+            comp = complexity(individual=y_complete['label'].as_matrix(), mst_edges=mst_final, n_instances=n)
+
+            print('Complexity final DS:', comp)
 
             print('Time for iteration', (i + 1), ':', time.time() - start_iter)
 

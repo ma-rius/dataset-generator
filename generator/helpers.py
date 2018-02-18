@@ -8,13 +8,12 @@ from scipy.sparse.csgraph import minimum_spanning_tree
 from scipy.spatial import distance
 
 
-# ----  Dataset Creation ----
-def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=False, m_groups=1, data=None):
+def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=False, m_groups=1, data=None, save_file=True):
     """
     Creates the Dataset and stores it
     :param n: the desired amount of instances
     :param m: the desired amount of features
-    :param path: the path to store the dataset in
+    :param path: the path to store the dataset at
     :param covariance_between_attributes: True if the features shall be correlated
     :param m_groups: amount of groups
     :param data: if data already exists, the function uses this data to create a MST and omits the data set creation
@@ -64,8 +63,9 @@ def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=F
     data_['label'] = np.nan
 
     # save in csv file
-    print('Store numbers in csv file...')
-    data_.to_csv(path_or_buf=path, header=data_[:].columns.values.tolist(), index=False)
+    if save_file:
+        print('Store numbers in csv file...')
+        data_.to_csv(path_or_buf=path, header=data_[:].columns.values.tolist(), index=False)
 
     # ----  End of Dataset Creation ----
 
