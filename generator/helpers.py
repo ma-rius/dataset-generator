@@ -93,6 +93,12 @@ def create_dataset_and_or_mst(n=0, m=0, path='', covariance_between_attributes=F
 
 # ----  Complexity Measure ----
 def complexity(individual, mst_edges, n_instances):
+    """
+    :param individual: the individual (labels)
+    :param mst_edges: list of MSTs
+    :param n_instances: amount of instances
+    :return: the complexity
+    """
     # 1. Store the nodes of the spanning tree with different class.
     nodes = [-1] * n_instances
     for edge in mst_edges:

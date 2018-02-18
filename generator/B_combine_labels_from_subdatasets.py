@@ -1,3 +1,8 @@
+"""
+The approach of this script is to generate sub datasets, find the labels for each sub dataset, use these labels
+to create a dataset with these labels only and find again their label (which is the final label), then combine the
+sub datasets and use the final label as the label for the whole dataset.
+"""
 import os
 import array
 import multiprocessing

@@ -1,5 +1,5 @@
 """
-Determine the labels in relation to the whole dataset (no sub datasets)
+Determine the labels in relation to the whole dataset (no sub datasets).
 """
 import os
 import array

@@ -1,5 +1,5 @@
 """
-Multi-objective EA
+Multi-objective EA.
 """
 import os
 import array
