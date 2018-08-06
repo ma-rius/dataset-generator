@@ -29,7 +29,7 @@ np.set_printoptions(threshold=np.inf, precision=2, linewidth=np.inf)
 pd.set_option('expand_frame_repr', False)
 
 complexity_measures = [0.2, 0.4, 0.6, 0.8]
-num_data_sets = 1
+num_data_sets = 100
 
 # define number of attributes in Test set
 num_attributes = 6
